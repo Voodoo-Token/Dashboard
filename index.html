@@ -134,7 +134,7 @@
               <input type="number" id="exitFee" step="0.01" min="0" class="win95-input mt-1 w-full" placeholder="e.g., 1.5">
             </div>
           </div>
-          <button type="submit" class="win95-button mt-6 w-full">Calculate</button>
+          <button type="submit" class="win95-button mt-6 w-full" id="calculateButton">Calculate</button>
         </form>
         <p id="error" class="error mt-4">Please fill in all fields with valid numbers.</p>
       </div>
@@ -381,11 +381,13 @@
     const form = document.getElementById('investmentForm');
     const error = document.getElementById('error');
     const resultsWindow = document.getElementById('resultsWindow');
+    const calculateButton = document.getElementById('calculateButton');
     const fetchBuyPriceBtn = document.getElementById('fetchBuyPrice');
     const fetchSellPriceBtn = document.getElementById('fetchSellPrice');
     const logos = document.querySelectorAll('.logo');
     let selectedToken = 'VDO';
     let chartInstance = null;
+    let buttonTimeout = null;
 
     // Token selector
     logos.forEach(logo => {
@@ -560,6 +562,20 @@
         error.textContent = 'Please fill in all fields with valid numbers.';
         error.style.display = 'block';
         resultsWindow.classList.add('hidden');
+        calculateButton.textContent = 'Please fill in all fields with valid numbers.';
+        calculateButton.style.color = '#ff0000';
+        
+        // Clear any existing timeout to prevent overlap
+        if (buttonTimeout) {
+          clearTimeout(buttonTimeout);
+        }
+        
+        // Revert button text and color after 5 seconds
+        buttonTimeout = setTimeout(() => {
+          calculateButton.textContent = 'Calculate';
+          calculateButton.style.color = '';
+          buttonTimeout = null;
+        }, 5000);
         return;
       }
 
