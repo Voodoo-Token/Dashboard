@@ -139,9 +139,9 @@
         <p id="error" class="error mt-4">Please fill in all fields with valid numbers.</p>
       </div>
     </div>
-    <div class="window">
+    <div class="window hidden" id="resultsWindow">
       <div class="title-bar">Investment Results</div>
-      <div class="content hidden" id="results">
+      <div class="content" id="results">
         <p><strong>Units Purchased:</strong> <span id="units"></span> Tokens</p>
         <p><strong>Total Cost:</strong> $<span id="totalCost"></span></p>
         <p><strong>Total Revenue:</strong> $<span id="totalRevenue"></span></p>
@@ -380,7 +380,7 @@
     // Form elements
     const form = document.getElementById('investmentForm');
     const error = document.getElementById('error');
-    const results = document.getElementById('results');
+    const resultsWindow = document.getElementById('resultsWindow');
     const fetchBuyPriceBtn = document.getElementById('fetchBuyPrice');
     const fetchSellPriceBtn = document.getElementById('fetchSellPrice');
     const logos = document.querySelectorAll('.logo');
@@ -559,7 +559,7 @@
       if (isNaN(investment) || isNaN(buyPrice) || isNaN(sellPrice) || investment <= 0 || buyPrice <= 0 || sellPrice <= 0) {
         error.textContent = 'Please fill in all fields with valid numbers.';
         error.style.display = 'block';
-        results.classList.add('hidden');
+        resultsWindow.classList.add('hidden');
         return;
       }
 
@@ -575,7 +575,7 @@
       document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2);
       document.getElementById('profitLoss').textContent = profitLoss.toFixed(2);
       document.getElementById('roi').textContent = roi.toFixed(2);
-      results.classList.remove('hidden');
+      resultsWindow.classList.remove('hidden');
     });
 
     // Initialize chart
