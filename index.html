@@ -72,12 +72,6 @@
       border-color: #000 #fff #fff #000;
       box-shadow: inset 1px 1px 0 #000;
     }
-    .error {
-      color: #ff0000;
-      display: none;
-      font-size: 12px;
-      text-align: center;
-    }
     canvas {
       background: #fff;
       border: 2px solid;
@@ -136,7 +130,6 @@
           </div>
           <button type="submit" class="win95-button mt-6 w-full" id="calculateButton">Calculate</button>
         </form>
-        <p id="error" class="error mt-4">Please fill in all fields with valid numbers.</p>
       </div>
     </div>
     <div class="window hidden" id="resultsWindow">
@@ -379,7 +372,6 @@
 
     // Form elements
     const form = document.getElementById('investmentForm');
-    const error = document.getElementById('error');
     const resultsWindow = document.getElementById('resultsWindow');
     const calculateButton = document.getElementById('calculateButton');
     const fetchBuyPriceBtn = document.getElementById('fetchBuyPrice');
@@ -402,6 +394,24 @@
       });
     });
 
+    // Function to show error on button
+    function showButtonError(message) {
+      calculateButton.textContent = message;
+      calculateButton.style.color = '#ff0000';
+      
+      // Clear any existing timeout to prevent overlap
+      if (buttonTimeout) {
+        clearTimeout(buttonTimeout);
+      }
+      
+      // Revert button text and color after 5 seconds
+      buttonTimeout = setTimeout(() => {
+        calculateButton.textContent = 'Calculate';
+        calculateButton.style.color = '';
+        buttonTimeout = null;
+      }, 5000);
+    }
+
     // Fetch current price for selected token
     async function fetchCurrentPrice() {
       try {
@@ -423,8 +433,7 @@
         return data.rate;
       } catch (err) {
         console.error('Error fetching price:', err);
-        error.textContent = 'Failed to fetch current price. Using fallback price.';
-        error.style.display = 'block';
+        showButtonError('Failed to fetch current price.');
         return selectedToken === 'VDO' ? 0.00033742909594797763 : 
                selectedToken === 'MAGIC' ? 0.000771673230634273 : 
                0.0010286399907437705;
@@ -468,6 +477,7 @@
           }));
         } catch (err) {
           console.error('Error fetching historical price:', err);
+          showButtonError('No historical data available.');
           return [];
         }
       }
@@ -480,13 +490,10 @@
       
       if (!historicalData.length) {
         chartContainer.style.display = 'none';
-        error.textContent = 'No historical data available for the selected token.';
-        error.style.display = 'block';
         return;
       }
 
       chartContainer.style.display = 'block';
-      error.style.display = 'none';
 
       const ctx = document.getElementById('priceChart').getContext('2d');
       
@@ -559,27 +566,11 @@
       const exitFee = parseFloat(document.getElementById('exitFee').value) || 0;
 
       if (isNaN(investment) || isNaN(buyPrice) || isNaN(sellPrice) || investment <= 0 || buyPrice <= 0 || sellPrice <= 0) {
-        error.textContent = 'Please fill in all fields with valid numbers.';
-        error.style.display = 'block';
+        showButtonError('Please fill in all fields with valid numbers.');
         resultsWindow.classList.add('hidden');
-        calculateButton.textContent = 'Please fill in all fields with valid numbers.';
-        calculateButton.style.color = '#ff0000';
-        
-        // Clear any existing timeout to prevent overlap
-        if (buttonTimeout) {
-          clearTimeout(buttonTimeout);
-        }
-        
-        // Revert button text and color after 5 seconds
-        buttonTimeout = setTimeout(() => {
-          calculateButton.textContent = 'Calculate';
-          calculateButton.style.color = '';
-          buttonTimeout = null;
-        }, 5000);
         return;
       }
 
-      error.style.display = 'none';
       const units = investment / buyPrice;
       const totalCost = investment + (investment * investmentFee / 100);
       const totalRevenue = (units * sellPrice) * (1 - exitFee / 100);
