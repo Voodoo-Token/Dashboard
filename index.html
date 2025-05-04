@@ -171,205 +171,6 @@
     const API_URL = 'https://api.livecoinwatch.com/coins/single';
     const HISTORY_URL = 'https://api.livecoinwatch.com/coins/single/history';
 
-    // Provided historical data for MAGIC and POISON
-    const magicHistoricalData = [
-      {"date": 1745875500000, "rate": 0.000808548470982837},
-      {"date": 1745876400000, "rate": 0.000809216005389113},
-      {"date": 1745877300000, "rate": 0.0008148086377467852},
-      {"date": 1745878200000, "rate": 0.0008120084133584783},
-      {"date": 1745879100000, "rate": 0.0008094049650382929},
-      {"date": 1745880000000, "rate": 0.0008098741739602257},
-      {"date": 1745880900000, "rate": 0.0008108991549455734},
-      {"date": 1745881800000, "rate": 0.0008078172402435635},
-      {"date": 1745882700000, "rate": 0.0008089738182089071},
-      {"date": 1745883600000, "rate": 0.00081554467217842},
-      {"date": 1745884500000, "rate": 0.0008117583617743251},
-      {"date": 1745885400000, "rate": 0.0008162477732891104},
-      {"date": 1745886300000, "rate": 0.00081662268348221},
-      {"date": 1745887200000, "rate": 0.0008179420022191537},
-      {"date": 1745888100000, "rate": 0.0008135046192537345},
-      {"date": 1745889000000, "rate": 0.000815293971052045},
-      {"date": 1745889900000, "rate": 0.0008129261051110204},
-      {"date": 1745890800000, "rate": 0.0008150616202079351},
-      {"date": 1745891700000, "rate": 0.0008206060440548307},
-      {"date": 1745892600000, "rate": 0.0008070115695964923},
-      {"date": 1745893500000, "rate": 0.000806101155971632},
-      {"date": 1745894400000, "rate": 0.0008067864868963256},
-      {"date": 1745895300000, "rate": 0.0008030691750461899},
-      {"date": 1745896200000, "rate": 0.0008037237568109325},
-      {"date": 1745897100000, "rate": 0.0007986212754060063},
-      {"date": 1745898000000, "rate": 0.0007974504777844521},
-      {"date": 1745898900000, "rate": 0.0007987224476771025},
-      {"date": 1745899800000, "rate": 0.0007961271875756131},
-      {"date": 1745900700000, "rate": 0.0007987657384271039},
-      {"date": 1745901600000, "rate": 0.000797552892918323},
-      {"date": 1745902500000, "rate": 0.0007969109078116534},
-      {"date": 1745903400000, "rate": 0.000793660539448137},
-      {"date": 1745904300000, "rate": 0.0007885996282395665},
-      {"date": 1745905200000, "rate": 0.0007923460429516095},
-      {"date": 1745906100000, "rate": 0.0007934068166369642},
-      {"date": 1745907000000, "rate": 0.0007956684569554382},
-      {"date": 1745907900000, "rate": 0.0007986206954344509},
-      {"date": 1745908800000, "rate": 0.0007971608519557292},
-      {"date": 1745909700000, "rate": 0.0007973993683261189},
-      {"date": 1745910600000, "rate": 0.0007943659363767315},
-      {"date": 1745911500000, "rate": 0.0007927237101578318},
-      {"date": 1745912400000, "rate": 0.0007927397598989422},
-      {"date": 1745913300000, "rate": 0.0007936044591632177},
-      {"date": 1745914200000, "rate": 0.0007941755519250862},
-      {"date": 1745915100000, "rate": 0.0007951599487114298},
-      {"date": 1745916000000, "rate": 0.0007897912276631507},
-      {"date": 1745916900000, "rate": 0.0007898857052648584},
-      {"date": 1745917800000, "rate": 0.0007944988850143251},
-      {"date": 1745918700000, "rate": 0.0007923625392322359},
-      {"date": 1745919600000, "rate": 0.000791093062141733},
-      {"date": 1745920500000, "rate": 0.0007900821602916798},
-      {"date": 1745921400000, "rate": 0.0007887705805565261},
-      {"date": 1745922300000, "rate": 0.0007893035551524332},
-      {"date": 1745923200000, "rate": 0.000786687752076612},
-      {"date": 1745924100000, "rate": 0.0007823275901656227},
-      {"date": 1745925000000, "rate": 0.0007866009079690097},
-      {"date": 1745925900000, "rate": 0.0007797521181352388},
-      {"date": 1745926800000, "rate": 0.0007774683696651476},
-      {"date": 1745927700000, "rate": 0.0007834268809677901},
-      {"date": 1745928600000, "rate": 0.0007804195348346761},
-      {"date": 1745929500000, "rate": 0.0007800852903734126},
-      {"date": 1745930400000, "rate": 0.0007771402243168553},
-      {"date": 1745931300000, "rate": 0.0007750066382537575},
-      {"date": 1745932200000, "rate": 0.0007738463588732823},
-      {"date": 1745933100000, "rate": 0.0007639204946005563},
-      {"date": 1745934000000, "rate": 0.0007711085252801232},
-      {"date": 1745934900000, "rate": 0.0007691014224610527},
-      {"date": 1745935800000, "rate": 0.0007712672622360934},
-      {"date": 1745936700000, "rate": 0.000774938057986978},
-      {"date": 1745937600000, "rate": 0.0007773748681360069},
-      {"date": 1745938500000, "rate": 0.000772246616753814},
-      {"date": 1745939400000, "rate": 0.0007755227040911862},
-      {"date": 1745940300000, "rate": 0.0007678278885257873},
-      {"date": 1745941200000, "rate": 0.0007685336561178283},
-      {"date": 1745942100000, "rate": 0.0007653337791378094},
-      {"date": 1745943000000, "rate": 0.0007641786547019329},
-      {"date": 1745943900000, "rate": 0.000767003171054004},
-      {"date": 1745944800000, "rate": 0.0007709933317052368},
-      {"date": 1745945700000, "rate": 0.0007824367082136007},
-      {"date": 1745946600000, "rate": 0.0007802594899400746},
-      {"date": 1745947500000, "rate": 0.000787650699370617},
-      {"date": 1745948400000, "rate": 0.0007810221628450621},
-      {"date": 1745949300000, "rate": 0.0007833333533154009},
-      {"date": 1745950200000, "rate": 0.0007816541909572238},
-      {"date": 1745951100000, "rate": 0.0007824893304284404},
-      {"date": 1745952000000, "rate": 0.0007840498575666853},
-      {"date": 1745952900000, "rate": 0.0007883025159559222},
-      {"date": 1745953800000, "rate": 0.0007805552826184899},
-      {"date": 1745954700000, "rate": 0.0007780024761148275},
-      {"date": 1745955600000, "rate": 0.0007754818703230935},
-      {"date": 1745956500000, "rate": 0.0007766419960652362},
-      {"date": 1745957400000, "rate": 0.0007776365364881598},
-      {"date": 1745958300000, "rate": 0.0007761602979742194},
-      {"date": 1745959200000, "rate": 0.000770022717063043},
-      {"date": 1745960100000, "rate": 0.0007697379950920322},
-      {"date": 1745961000000, "rate": 0.0007677028883160954}
-    ];
-
-    const poisonHistoricalData = [
-      {"date": 1745875500000, "rate": 0.0010685119577938424},
-      {"date": 1745876400000, "rate": 0.001068626327633351},
-      {"date": 1745877300000, "rate": 0.001075592111429451},
-      {"date": 1745878200000, "rate": 0.0010718951517679747},
-      {"date": 1745879100000, "rate": 0.0010684579340458384},
-      {"date": 1745880000000, "rate": 0.0010690767829260725},
-      {"date": 1745880900000, "rate": 0.0010704292666303445},
-      {"date": 1745881800000, "rate": 0.0010663604228920527},
-      {"date": 1745882700000, "rate": 0.001067886590327595},
-      {"date": 1745883600000, "rate": 0.001076559862664757},
-      {"date": 1745884500000, "rate": 0.001071561141024672},
-      {"date": 1745885400000, "rate": 0.0010774867651542604},
-      {"date": 1745886300000, "rate": 0.0010779810278213758},
-      {"date": 1745887200000, "rate": 0.0010797219387180543},
-      {"date": 1745888100000, "rate": 0.0010766768685621817},
-      {"date": 1745889000000, "rate": 0.0010790470967497892},
-      {"date": 1745889900000, "rate": 0.0010759152470678091},
-      {"date": 1745890800000, "rate": 0.001078743725397259},
-      {"date": 1745891700000, "rate": 0.0010860839886571198},
-      {"date": 1745892600000, "rate": 0.0010753944930218303},
-      {"date": 1745893500000, "rate": 0.0010741840048750443},
-      {"date": 1745894400000, "rate": 0.0010745906111261391},
-      {"date": 1745895300000, "rate": 0.0010696435708977513},
-      {"date": 1745896200000, "rate": 0.0010738889975606058},
-      {"date": 1745897100000, "rate": 0.00106707113820233},
-      {"date": 1745898000000, "rate": 0.0010655065634107095},
-      {"date": 1745898900000, "rate": 0.0010672058652408506},
-      {"date": 1745899800000, "rate": 0.0010637379995337701},
-      {"date": 1745900700000, "rate": 0.0010672632344528362},
-      {"date": 1745901600000, "rate": 0.0010656424593123185},
-      {"date": 1745902500000, "rate": 0.001064784426979843},
-      {"date": 1745903400000, "rate": 0.001060441227465741},
-      {"date": 1745904300000, "rate": 0.0010531998166269734},
-      {"date": 1745905200000, "rate": 0.0010582048039105819},
-      {"date": 1745906100000, "rate": 0.0010582768111011072},
-      {"date": 1745907000000, "rate": 0.0010612944398319154},
-      {"date": 1745907900000, "rate": 0.0010652332359570305},
-      {"date": 1745908800000, "rate": 0.0010632870530918504},
-      {"date": 1745909700000, "rate": 0.0010636062178459053},
-      {"date": 1745910600000, "rate": 0.0010627355805562122},
-      {"date": 1745911500000, "rate": 0.001060538809975617},
-      {"date": 1745912400000, "rate": 0.0010605605537950772},
-      {"date": 1745913300000, "rate": 0.001061717663736527},
-      {"date": 1745914200000, "rate": 0.001062481982196599},
-      {"date": 1745915100000, "rate": 0.0010637992413629785},
-      {"date": 1745916000000, "rate": 0.0010566170302319358},
-      {"date": 1745916900000, "rate": 0.0010567437329099024},
-      {"date": 1745917800000, "rate": 0.0010629157578280056},
-      {"date": 1745918700000, "rate": 0.0010600579778707246},
-      {"date": 1745919600000, "rate": 0.0010583599390585714},
-      {"date": 1745920500000, "rate": 0.0010570078435244267},
-      {"date": 1745921400000, "rate": 0.0010552534892275568},
-      {"date": 1745922300000, "rate": 0.001055966874574639},
-      {"date": 1745923200000, "rate": 0.0010524676898768183},
-      {"date": 1745924100000, "rate": 0.00104663482050556},
-      {"date": 1745925000000, "rate": 0.001052352235030101},
-      {"date": 1745925900000, "rate": 0.00104318998097934},
-      {"date": 1745926800000, "rate": 0.0010401350624549303},
-      {"date": 1745927700000, "rate": 0.0010481070484634554},
-      {"date": 1745928600000, "rate": 0.0010440840825954997},
-      {"date": 1745929500000, "rate": 0.0010436373335426796},
-      {"date": 1745930400000, "rate": 0.001039697701073729},
-      {"date": 1745931300000, "rate": 0.0010368437242274395},
-      {"date": 1745932200000, "rate": 0.0010352918934973406},
-      {"date": 1745933100000, "rate": 0.0010220130159476495},
-      {"date": 1745934000000, "rate": 0.0010316300170218446},
-      {"date": 1745934900000, "rate": 0.0010289452945409139},
-      {"date": 1745935800000, "rate": 0.0010318433788014776},
-      {"date": 1745936700000, "rate": 0.0010367548899993142},
-      {"date": 1745937600000, "rate": 0.0010400763689867576},
-      {"date": 1745938500000, "rate": 0.0010332191199372523},
-      {"date": 1745939400000, "rate": 0.001037606420222375},
-      {"date": 1745940300000, "rate": 0.001027315344191689},
-      {"date": 1745941200000, "rate": 0.001028263899442915},
-      {"date": 1745942100000, "rate": 0.0010239869844496621},
-      {"date": 1745943000000, "rate": 0.0010224458593913054},
-      {"date": 1745943900000, "rate": 0.0010261558779543231},
-      {"date": 1745944800000, "rate": 0.001031499553429508},
-      {"date": 1745945700000, "rate": 0.0010389027906857263},
-      {"date": 1745946600000, "rate": 0.0010360132560064518},
-      {"date": 1745947500000, "rate": 0.0010458285388940756},
-      {"date": 1745948400000, "rate": 0.001039871678489537},
-      {"date": 1745949300000, "rate": 0.001042948503435656},
-      {"date": 1745950200000, "rate": 0.0010407128039722723},
-      {"date": 1745951100000, "rate": 0.0010418243666120912},
-      {"date": 1745952000000, "rate": 0.0010435694451470367},
-      {"date": 1745952900000, "rate": 0.0010492306075826439},
-      {"date": 1745953800000, "rate": 0.0010460508028577757},
-      {"date": 1745954700000, "rate": 0.001042630764774806},
-      {"date": 1745955600000, "rate": 0.0010392539040090679},
-      {"date": 1745956500000, "rate": 0.0010408097382912866},
-      {"date": 1745957400000, "rate": 0.0010421437277109988},
-      {"date": 1745958300000, "rate": 0.0010401665283078071},
-      {"date": 1745959200000, "rate": 0.0010319424830655011},
-      {"date": 1745960100000, "rate": 0.001031488475615318},
-      {"date": 1745961000000, "rate": 0.0010287603338078144}
-    ];
-
     // Form elements
     const form = document.getElementById('investmentForm');
     const resultsWindow = document.getElementById('resultsWindow');
@@ -399,12 +200,10 @@
       calculateButton.textContent = message;
       calculateButton.style.color = '#ff0000';
       
-      // Clear any existing timeout to prevent overlap
       if (buttonTimeout) {
         clearTimeout(buttonTimeout);
       }
       
-      // Revert button text and color after 5 seconds
       buttonTimeout = setTimeout(() => {
         calculateButton.textContent = 'Calculate';
         calculateButton.style.color = '';
@@ -412,10 +211,17 @@
       }, 5000);
     }
 
+    // Map token names to API codes
+    const tokenCodeMap = {
+      'VDO': 'VDO',
+      'MAGIC': '__________MAGIC',
+      'POISON': '__POISON' // Replace with correct code if known
+    };
+
     // Fetch current price for selected token
     async function fetchCurrentPrice() {
       try {
-        const tokenCode = selectedToken === 'VDO' ? 'VDO' : (selectedToken === 'MAGIC' ? '__________MAGIC' : '__POISON');
+        const tokenCode = tokenCodeMap[selectedToken];
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: {
@@ -428,12 +234,13 @@
             meta: false
           })
         });
-        if (!response.ok) throw new Error('API response not OK');
+        if (!response.ok) throw new Error(`API response not OK for ${tokenCode}`);
         const data = await response.json();
+        console.log(`${selectedToken} current price:`, data.rate);
         return data.rate;
       } catch (err) {
-        console.error('Error fetching price:', err);
-        showButtonError('Failed to fetch current price.');
+        console.error(`Error fetching price for ${selectedToken}:`, err);
+        showButtonError(`Failed to fetch ${selectedToken} price.`);
         return selectedToken === 'VDO' ? 0.00033742909594797763 : 
                selectedToken === 'MAGIC' ? 0.000771673230634273 : 
                0.0010286399907437705;
@@ -442,44 +249,34 @@
 
     // Fetch historical price data
     async function fetchHistoricalPrice() {
-      if (selectedToken === 'MAGIC') {
-        return magicHistoricalData.map(entry => ({
+      try {
+        const tokenCode = tokenCodeMap[selectedToken];
+        const end = new Date('2025-05-05').getTime(); // May 5, 2025
+        const start = end - 30 * 24 * 60 * 60 * 1000; // April 5, 2025
+        const response = await fetch(HISTORY_URL, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-api-key': API_KEY
+          },
+          body: JSON.stringify({
+            currency: 'USD',
+            code: tokenCode,
+            start,
+            end
+          })
+        });
+        if (!response.ok) throw new Error(`API response not OK for ${tokenCode}`);
+        const data = await response.json();
+        const historicalData = data.history.map(entry => ({
           date: new Date(entry.date).toLocaleDateString(),
           price: entry.rate
         }));
-      } else if (selectedToken === 'POISON') {
-        return poisonHistoricalData.map(entry => ({
-          date: new Date(entry.date).toLocaleDateString(),
-          price: entry.rate
-        }));
-      } else {
-        try {
-          const end = Date.now();
-          const start = end - 30 * 24 * 60 * 60 * 1000;
-          const response = await fetch(HISTORY_URL, {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              'x-api-key': API_KEY
-            },
-            body: JSON.stringify({
-              currency: 'USD',
-              code: 'VDO',
-              start,
-              end
-            })
-          });
-          if (!response.ok) throw new Error('API response not OK');
-          const data = await response.json();
-          return data.history.map(entry => ({
-            date: new Date(entry.date).toLocaleDateString(),
-            price: entry.rate
-          }));
-        } catch (err) {
-          console.error('Error fetching historical price:', err);
-          showButtonError('No historical data available.');
-          return [];
-        }
+        console.log(`${selectedToken} historical data:`, historicalData);
+        return historicalData;
+      } catch (err) {
+        console.error(`Error fetching historical price for ${selectedToken}:`, err);
+        return [];
       }
     }
 
@@ -487,19 +284,53 @@
     async function renderChart() {
       const historicalData = await fetchHistoricalPrice();
       const chartContainer = document.getElementById('priceChart').parentElement;
+      const canvas = document.getElementById('priceChart');
       
-      if (!historicalData.length) {
-        chartContainer.style.display = 'none';
-        return;
-      }
-
       chartContainer.style.display = 'block';
 
-      const ctx = document.getElementById('priceChart').getContext('2d');
+      const ctx = canvas.getContext('2d');
       
-      // Destroy existing chart if it exists
       if (chartInstance) {
         chartInstance.destroy();
+      }
+
+      if (!historicalData.length) {
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['No Data'],
+            datasets: [{
+              label: `${selectedToken} Price (USD)`,
+              data: [0],
+              borderColor: selectedToken === 'VDO' ? '#000080' : 
+                          selectedToken === 'MAGIC' ? '#800080' : 
+                          '#268137',
+              backgroundColor: selectedToken === 'VDO' ? 'rgba(0, 0, 128, 0.2)' : 
+                              selectedToken === 'MAGIC' ? 'rgba(128, 0, 128, 0.2)' : 
+                              'rgba(38, 129, 55, 0.2)',
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: { title: { display: true, text: 'Date' } },
+              y: { 
+                title: { display: true, text: 'Price (USD)' },
+                ticks: {
+                  callback: function(value) {
+                    return '$' + value.toFixed(6);
+                  }
+                }
+              }
+            },
+            plugins: {
+              tooltip: { enabled: false },
+              legend: { display: false }
+            }
+          }
+        });
+        return;
       }
 
       chartInstance = new Chart(ctx, {
