@@ -171,6 +171,10 @@
     const API_URL = 'https://api.livecoinwatch.com/coins/single';
     const HISTORY_URL = 'https://api.livecoinwatch.com/coins/single/history';
 
+    // Cache durations (in seconds)
+    const CURRENT_PRICE_CACHE_DURATION = 3600; // 1 hour
+    const HISTORICAL_PRICE_CACHE_DURATION = 86400; // 24 hours
+
     // Form elements
     const form = document.getElementById('investmentForm');
     const resultsWindow = document.getElementById('resultsWindow');
@@ -218,8 +222,38 @@
       'POISON': '__POISON' // Replace with correct code if known
     };
 
+    // Helper function to get cached data from localStorage
+    function getCachedData(key) {
+      try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+      } catch (err) {
+        console.error(`Error reading ${key} from localStorage:`, err);
+        return null;
+      }
+    }
+
+    // Helper function to set cached data in localStorage
+    function setCachedData(key, data, timestamp) {
+      try {
+        localStorage.setItem(key, JSON.stringify({ data, timestamp }));
+      } catch (err) {
+        console.error(`Error saving ${key} to localStorage:`, err);
+      }
+    }
+
     // Fetch current price for selected token
     async function fetchCurrentPrice() {
+      const cacheKey = `voodoo_currentPrice_${selectedToken}`;
+      const cached = getCachedData(cacheKey);
+      const now = Date.now() / 1000; // Current time in seconds
+
+      // Use cached price if recent enough
+      if (cached && (now - cached.timestamp) < CURRENT_PRICE_CACHE_DURATION) {
+        console.log(`${selectedToken} current price from cache:`, cached.data);
+        return cached.data;
+      }
+
       try {
         const tokenCode = tokenCodeMap[selectedToken];
         const response = await fetch(API_URL, {
@@ -236,11 +270,22 @@
         });
         if (!response.ok) throw new Error(`API response not OK for ${tokenCode}`);
         const data = await response.json();
-        console.log(`${selectedToken} current price:`, data.rate);
+        console.log(`${selectedToken} current price from API:`, data.rate);
+        
+        // Cache the new price
+        setCachedData(cacheKey, data.rate, now);
         return data.rate;
       } catch (err) {
         console.error(`Error fetching price for ${selectedToken}:`, err);
         showButtonError(`Failed to fetch ${selectedToken} price.`);
+        
+        // Fallback to cached price if available
+        if (cached) {
+          console.log(`${selectedToken} using outdated cached price:`, cached.data);
+          return cached.data;
+        }
+        
+        // Fallback to default price
         return selectedToken === 'VDO' ? 0.00033742909594797763 : 
                selectedToken === 'MAGIC' ? 0.000771673230634273 : 
                0.0010286399907437705;
@@ -249,6 +294,16 @@
 
     // Fetch historical price data
     async function fetchHistoricalPrice() {
+      const cacheKey = `voodoo_historicalPrice_${selectedToken}`;
+      const cached = getCachedData(cacheKey);
+      const now = Date.now() / 1000; // Current time in seconds
+
+      // Use cached historical data if recent enough
+      if (cached && (now - cached.timestamp) < HISTORICAL_PRICE_CACHE_DURATION) {
+        console.log(`${selectedToken} historical data from cache:`, cached.data);
+        return cached.data;
+      }
+
       try {
         const tokenCode = tokenCodeMap[selectedToken];
         const end = new Date('2025-05-05').getTime(); // May 5, 2025
@@ -272,10 +327,20 @@
           date: new Date(entry.date).toLocaleDateString(),
           price: entry.rate
         }));
-        console.log(`${selectedToken} historical data:`, historicalData);
+        console.log(`${selectedToken} historical data from API:`, historicalData);
+        
+        // Cache the new historical data
+        setCachedData(cacheKey, historicalData, now);
         return historicalData;
       } catch (err) {
         console.error(`Error fetching historical price for ${selectedToken}:`, err);
+        
+        // Fallback to cached historical data if available
+        if (cached) {
+          console.log(`${selectedToken} using outdated cached historical data:`, cached.data);
+          return cached.data;
+        }
+        
         return [];
       }
     }
