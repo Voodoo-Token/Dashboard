@@ -76,6 +76,30 @@
       background: #fff;
       border: 2px solid;
       border-color: #000 #fff #fff #000;
+      width: 100%;
+    }
+    .charts-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      max-width: 100%;
+      flex-wrap: nowrap;
+    }
+    .holder-window {
+      flex: 3;
+      max-width: 60%;
+    }
+    .pie-window {
+      flex: 2;
+      max-width: 40%;
+    }
+    .holder-chart {
+      height: 200px; /* Half the size of price chart */
+      width: 100%;
+    }
+    .pie-chart {
+      width: 150px;
+      height: 150px;
     }
     .logo {
       width: 64px;
@@ -148,10 +172,24 @@
         <canvas id="priceChart"></canvas>
       </div>
     </div>
+    <div class="charts-container">
+      <div class="window holder-window">
+        <div class="title-bar">Token Holders</div>
+        <div class="content">
+          <canvas id="holderChart" class="holder-chart"></canvas>
+        </div>
+      </div>
+      <div class="window pie-window">
+        <div class="title-bar">Token Distribution</div>
+        <div class="content">
+          <canvas id="pieChart" class="pie-chart"></canvas>
+        </div>
+      </div>
+    </div>
     <div class="window">
       <div class="title-bar">What is this dashboard?</div>
       <div class="content">
-        <textarea class="win95-input w-full h-24" id="SUSEText" readonly spellcheck="false">This dashboard helps you see how much you could make or lose by investing in Voodoo, Magic or the Poison Reward Token. You can enter things like how much money you want to invest, the price you buy and sell at, and any fees. The dashboard will then show you your possible profit or loss. It also lets you check the current price and see how the price has changed over the last 30 days.</textarea>
+        <textarea class="win95-input w-full h-24" id="SUSEText" readonly spellcheck="false">This dashboard helps you see how much you could make or lose by investing in Voodoo, Magic, or the Poison Reward Token. You can enter things like how much money you want to invest, the price you buy and sell at, and any fees. The dashboard will then show you your possible profit or loss. It also lets you check the current price and see how the price has changed over the last 30 days. Additionally, it tracks the number of token holders for the selected token (Voodoo, Magic, or Poison) starting from May 5, 2025, with a compact chart below the price chart that adapts to show daily, weekly, monthly, or yearly data to remain clear even after 10 years, alongside a placeholder distribution pie chart in a separate box.</textarea>
       </div>
     </div>
     <div class="window">
@@ -170,10 +208,28 @@
     const API_KEY = 'ddd9175e-6cb0-4fed-babc-8a54cd255c0e';
     const API_URL = 'https://api.livecoinwatch.com/coins/single';
     const HISTORY_URL = 'https://api.livecoinwatch.com/coins/single/history';
+    const PULSECHAIN_API = 'https://api.scan.pulsechain.com/api/v2/tokens/';
 
     // Cache durations (in seconds)
     const CURRENT_PRICE_CACHE_DURATION = 3600; // 1 hour
     const HISTORICAL_PRICE_CACHE_DURATION = 86400; // 24 hours
+    const HOLDERS_CACHE_DURATION = 86400; // 24 hours
+
+    // Token configurations
+    const tokens = {
+      VDO: {
+        address: '0x1c5f8e8E84AcC71650F7a627cfA5B24B80f44f00',
+        color: '#000080'
+      },
+      MAGIC: {
+        address: '0xd63b9d8d6e38cb7fbfdceede3ce92f97f5aea7ac',
+        color: '#800080'
+      },
+      POISON: {
+        address: '0xb8c8761fed2aad5c0a75561bc604531a42c452e6',
+        color: '#268137'
+      }
+    };
 
     // Form elements
     const form = document.getElementById('investmentForm');
@@ -184,6 +240,8 @@
     const logos = document.querySelectorAll('.logo');
     let selectedToken = 'VDO';
     let chartInstance = null;
+    let holderChartInstance = null;
+    let pieChartInstance = null;
     let buttonTimeout = null;
 
     // Token selector
@@ -194,8 +252,10 @@
         selectedToken = logo.dataset.token;
         document.getElementById('buyPrice').value = '';
         document.getElementById('sellPrice').value = '';
-        document.querySelector('.window:nth-child(3) .title-bar').textContent = `Historical ${selectedToken} Price (Last 30 Days)`;
+        document.querySelector('.window:nth-child(4) .title-bar').textContent = `Historical ${selectedToken} Price (Last 30 Days)`;
         renderChart();
+        renderHolderChart(selectedToken);
+        renderPieChart();
       });
     });
 
@@ -219,7 +279,7 @@
     const tokenCodeMap = {
       'VDO': 'VDO',
       'MAGIC': '__________MAGIC',
-      'POISON': '__POISON' // Replace with correct code if known
+      'POISON': '__POISON'
     };
 
     // Helper function to get cached data from localStorage
@@ -246,9 +306,8 @@
     async function fetchCurrentPrice() {
       const cacheKey = `voodoo_currentPrice_${selectedToken}`;
       const cached = getCachedData(cacheKey);
-      const now = Date.now() / 1000; // Current time in seconds
+      const now = Date.now() / 1000;
 
-      // Use cached price if recent enough
       if (cached && (now - cached.timestamp) < CURRENT_PRICE_CACHE_DURATION) {
         console.log(`${selectedToken} current price from cache:`, cached.data);
         return cached.data;
@@ -272,20 +331,17 @@
         const data = await response.json();
         console.log(`${selectedToken} current price from API:`, data.rate);
         
-        // Cache the new price
         setCachedData(cacheKey, data.rate, now);
         return data.rate;
       } catch (err) {
         console.error(`Error fetching price for ${selectedToken}:`, err);
         showButtonError(`Failed to fetch ${selectedToken} price.`);
         
-        // Fallback to cached price if available
         if (cached) {
           console.log(`${selectedToken} using outdated cached price:`, cached.data);
           return cached.data;
         }
         
-        // Fallback to default price
         return selectedToken === 'VDO' ? 0.00033742909594797763 : 
                selectedToken === 'MAGIC' ? 0.000771673230634273 : 
                0.0010286399907437705;
@@ -296,9 +352,8 @@
     async function fetchHistoricalPrice() {
       const cacheKey = `voodoo_historicalPrice_${selectedToken}`;
       const cached = getCachedData(cacheKey);
-      const now = Date.now() / 1000; // Current time in seconds
+      const now = Date.now() / 1000;
 
-      // Use cached historical data if recent enough
       if (cached && (now - cached.timestamp) < HISTORICAL_PRICE_CACHE_DURATION) {
         console.log(`${selectedToken} historical data from cache:`, cached.data);
         return cached.data;
@@ -306,8 +361,8 @@
 
       try {
         const tokenCode = tokenCodeMap[selectedToken];
-        const end = new Date('2025-05-05').getTime(); // May 5, 2025
-        const start = end - 30 * 24 * 60 * 60 * 1000; // April 5, 2025
+        const end = new Date('2025-05-05').getTime();
+        const start = end - 30 * 24 * 60 * 60 * 1000;
         const response = await fetch(HISTORY_URL, {
           method: 'POST',
           headers: {
@@ -329,13 +384,11 @@
         }));
         console.log(`${selectedToken} historical data from API:`, historicalData);
         
-        // Cache the new historical data
         setCachedData(cacheKey, historicalData, now);
         return historicalData;
       } catch (err) {
         console.error(`Error fetching historical price for ${selectedToken}:`, err);
         
-        // Fallback to cached historical data if available
         if (cached) {
           console.log(`${selectedToken} using outdated cached historical data:`, cached.data);
           return cached.data;
@@ -345,6 +398,255 @@
       }
     }
 
+    // Fetch holder count for a token
+    async function fetchHolderCount(token) {
+      const cacheKey = `holders_${token}_${new Date().toISOString().split('T')[0]}`;
+      const cached = getCachedData(cacheKey);
+      const now = Date.now() / 1000;
+
+      if (cached && (now - cached.timestamp) < HOLDERS_CACHE_DURATION) {
+        console.log(`${token} holders from cache:`, cached.data);
+        return cached.data;
+      }
+
+      try {
+        const response = await fetch(`${PULSECHAIN_API}${tokens[token].address}`, {
+          method: 'GET',
+          headers: {
+            'accept': 'application/json'
+          }
+        });
+        if (!response.ok) throw new Error(`API response not OK for ${token}`);
+        const data = await response.json();
+        const holders = data.holders_count;
+        console.log(`${token} holders from API:`, holders);
+        
+        setCachedData(cacheKey, holders, now);
+        return holders;
+      } catch (err) {
+        console.error(`Error fetching holders for ${token}:`, err);
+        return null;
+      }
+    }
+
+    // Aggregate holder data based on time range
+    function aggregateHolderData(data) {
+      const today = new Date('2025-05-05');
+      const aggregated = [];
+      const dailyLimit = 30; // 30 days of daily data
+      const weeklyLimit = 365; // ~1 year of weekly data
+      const monthlyLimit = 3 * 365; // ~3 years of monthly data
+
+      let currentGroup = [];
+      let currentDate = new Date(data[0].date);
+      let groupType = 'daily';
+
+      data.forEach((entry, index) => {
+        const entryDate = new Date(entry.date);
+        const daysDiff = (today - entryDate) / (1000 * 60 * 60 * 24);
+
+        if (daysDiff <= dailyLimit) {
+          groupType = 'daily';
+          aggregated.push(entry);
+        } else if (daysDiff <= weeklyLimit) {
+          groupType = 'weekly';
+          currentGroup.push(entry);
+          if (entryDate.getDay() === 0 || index === data.length - 1) {
+            if (currentGroup.length > 0) {
+              const avgHolders = currentGroup.reduce((sum, e) => sum + e.holders, 0) / currentGroup.length;
+              aggregated.push({
+                date: currentGroup[0].date,
+                holders: avgHolders
+              });
+              currentGroup = [];
+            }
+          }
+        } else if (daysDiff <= monthlyLimit) {
+          groupType = 'monthly';
+          currentGroup.push(entry);
+          if (entryDate.getDate() === 1 || index === data.length - 1) {
+            if (currentGroup.length > 0) {
+              const avgHolders = currentGroup.reduce((sum, e) => sum + e.holders, 0) / currentGroup.length;
+              aggregated.push({
+                date: currentGroup[0].date,
+                holders: avgHolders
+              });
+              currentGroup = [];
+            }
+          }
+        } else {
+          groupType = 'yearly';
+          currentGroup.push(entry);
+          if (entryDate.getMonth() === 0 && entryDate.getDate() === 1 || index === data.length - 1) {
+            if (currentGroup.length > 0) {
+              const avgHolders = currentGroup.reduce((sum, e) => sum + e.holders, 0) / currentGroup.length;
+              aggregated.push({
+                date: currentGroup[0].date,
+                holders: avgHolders
+              });
+              currentGroup = [];
+            }
+          }
+        }
+      });
+
+      return aggregated;
+    }
+
+    // Simulate 10 years of holder data (for testing, replace with real data collection)
+    async function getHolderData(token) {
+      const cacheKey = `holder_history_${token}`;
+      let holderData = getCachedData(cacheKey)?.data || [];
+      const today = new Date('2025-05-05');
+      const todayStr = today.toISOString().split('T')[0];
+
+      // Check if today's data is already stored
+      if (!holderData.find(d => d.date === todayStr)) {
+        const holders = await fetchHolderCount(token);
+        if (holders !== null) {
+          holderData.push({
+            date: todayStr,
+            holders
+          });
+          setCachedData(cacheKey, holderData, Date.now() / 1000);
+        }
+      }
+
+      // Simulate 10 years of data for testing (comment out in production)
+      if (holderData.length === 1) {
+        let lastHolders = holderData[0].holders;
+        for (let i = 1; i < 3650; i++) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toISOString().split('T')[0];
+          lastHolders += Math.floor(Math.random() * 10 - 5); // Random walk for simulation
+          if (lastHolders < 0) lastHolders = 0;
+          holderData.push({
+            date: dateStr,
+            holders: lastHolders
+          });
+        }
+        holderData.reverse(); // Chronological order
+        setCachedData(cacheKey, holderData, Date.now() / 1000);
+      }
+
+      return aggregateHolderData(holderData);
+    }
+
+    // Render holder chart for the selected token
+    async function renderHolderChart(token) {
+      const holderData = await getHolderData(token);
+      const canvas = document.getElementById('holderChart');
+      const ctx = canvas.getContext('2d');
+
+      if (holderChartInstance) {
+        holderChartInstance.destroy();
+      }
+
+      if (!holderData.length) {
+        holderChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['No Data'],
+            datasets: [{
+              label: `${token} Holders`,
+              data: [0],
+              borderColor: tokens[token].color,
+              backgroundColor: tokens[token].color + '33',
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: { title: { display: true, text: 'Date' } },
+              y: { 
+                title: { display: true, text: 'Holders' },
+                ticks: { precision: 0 }
+              }
+            },
+            plugins: {
+              tooltip: { enabled: false },
+              legend: { display: true }
+            }
+          }
+        });
+        return;
+      }
+
+      holderChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: holderData.map(d => d.date),
+          datasets: [{
+            label: `${token} Holders`,
+            data: holderData.map(d => d.holders),
+            borderColor: tokens[token].color,
+            backgroundColor: tokens[token].color + '33',
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Date' } },
+            y: { 
+              title: { display: true, text: 'Holders' },
+              ticks: { precision: 0 }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${token} Holders: ${context.parsed.y.toFixed(0)}`;
+                }
+              }
+            },
+            legend: { display: true }
+          }
+        }
+      });
+    }
+
+    // Render placeholder pie chart
+    function renderPieChart() {
+      const canvas = document.getElementById('pieChart');
+      const ctx = canvas.getContext('2d');
+
+      if (pieChartInstance) {
+        pieChartInstance.destroy();
+      }
+
+      pieChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['Placeholder 1', 'Placeholder 2', 'Placeholder 3'],
+          datasets: [{
+            data: [33, 33, 34],
+            backgroundColor: [
+              tokens[selectedToken].color + '99',
+              tokens[selectedToken].color + '66',
+              tokens[selectedToken].color + '33'
+            ],
+            borderColor: '#000',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { font: { size: 10 } }
+            },
+            tooltip: { enabled: false }
+          }
+        }
+      });
+    }
+
     // Render historical price chart
     async function renderChart() {
       const historicalData = await fetchHistoricalPrice();
@@ -352,7 +654,6 @@
       const canvas = document.getElementById('priceChart');
       
       chartContainer.style.display = 'block';
-
       const ctx = canvas.getContext('2d');
       
       if (chartInstance) {
@@ -367,12 +668,8 @@
             datasets: [{
               label: `${selectedToken} Price (USD)`,
               data: [0],
-              borderColor: selectedToken === 'VDO' ? '#000080' : 
-                          selectedToken === 'MAGIC' ? '#800080' : 
-                          '#268137',
-              backgroundColor: selectedToken === 'VDO' ? 'rgba(0, 0, 128, 0.2)' : 
-                              selectedToken === 'MAGIC' ? 'rgba(128, 0, 128, 0.2)' : 
-                              'rgba(38, 129, 55, 0.2)',
+              borderColor: tokens[selectedToken].color,
+              backgroundColor: tokens[selectedToken].color + '33',
               fill: true
             }]
           },
@@ -405,12 +702,8 @@
           datasets: [{
             label: `${selectedToken} Price (USD)`,
             data: historicalData.map(d => d.price),
-            borderColor: selectedToken === 'VDO' ? '#000080' : 
-                        selectedToken === 'MAGIC' ? '#800080' : 
-                        '#268137',
-            backgroundColor: selectedToken === 'VDO' ? 'rgba(0, 0, 128, 0.2)' : 
-                            selectedToken === 'MAGIC' ? 'rgba(128, 0, 128, 0.2)' : 
-                            'rgba(38, 129, 55, 0.2)',
+            borderColor: tokens[selectedToken].color,
+            backgroundColor: tokens[selectedToken].color + '33',
             fill: true
           }]
         },
@@ -434,7 +727,8 @@
                   return `${selectedToken} Price: $${context.parsed.y.toFixed(6)}`;
                 }
               }
-            }
+            },
+            legend: { display: true }
           }
         }
       });
@@ -481,8 +775,10 @@
       resultsWindow.classList.remove('hidden');
     });
 
-    // Initialize chart
+    // Initialize charts
     renderChart();
+    renderHolderChart('VDO');
+    renderPieChart();
   </script>
 </body>
 </html>
