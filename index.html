@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voodoo Token Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Voodoo Token Investment Calculator</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -29,7 +28,7 @@
       border-color: #fff #000 #000 #fff;
     }
     .title-bar {
-      background: linear-gradient(to right, #000080, #87ceeb);
+      background: #000080;
       color: #fff;
       padding: 2px 5px;
       font-size: 12px;
@@ -44,6 +43,8 @@
       border-color: #000 #fff #fff #000;
       padding: 2px;
       font-size: 12px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .win95-button {
       background: #c0c0c0;
@@ -72,34 +73,17 @@
       border-color: #000 #fff #fff #000;
       box-shadow: inset 1px 1px 0 #000;
     }
+    .error {
+      color: #ff0000;
+      display: none;
+      font-size: 12px;
+      text-align: center;
+    }
     canvas {
       background: #fff;
       border: 2px solid;
       border-color: #000 #fff #fff #000;
       width: 100%;
-    }
-    .charts-container {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      max-width: 100%;
-      flex-wrap: nowrap;
-    }
-    .holder-window {
-      flex: 3;
-      max-width: 60%;
-    }
-    .pie-window {
-      flex: 2;
-      max-width: 40%;
-    }
-    .holder-chart {
-      height: 200px; /* Half the size of price chart */
-      width: 100%;
-    }
-    .pie-chart {
-      width: 150px;
-      height: 150px;
     }
     .logo {
       width: 64px;
@@ -117,48 +101,91 @@
       justify-content: center;
       margin: 10px 0;
     }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (min-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .links-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .hidden {
+      display: none;
+    }
+    .charts-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      max-width: 100%;
+      flex-wrap: nowrap;
+    }
+    .holder-window {
+      flex: 3;
+      max-width: 60%;
+    }
+    .pie-window {
+      flex: 2;
+      max-width: 40%;
+    }
+    .holder-chart {
+      height: 200px;
+      width: 100%;
+    }
+    .pie-chart {
+      width: 150px;
+      height: 150px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="token-selector">
       <img src="https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/vdo.png" alt="Voodoo Token Logo" class="logo selected" data-token="VDO">
-      <img src="https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/__________magic.png" alt="Magic Token Logo" class="logo" data-token="MAGIC">
-      <img src="https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/__poison.png" alt="Poison Token Logo" class="logo" data-token="POISON">
+      <img src="https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/__________magic.png" alt="Magic Token Logo" class="logo" data-token="__________MAGIC">
+      <img src="https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/__poison.png" alt="Poison Token Logo" class="logo" data-token="__POISON">
     </div>
     <div class="window">
-      <div class="title-bar">Voodoo Token Investment Calculator</div>
+      <div class="title-bar">Token Investment Calculator</div>
       <div class="content">
         <form id="investmentForm">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-grid">
             <div>
               <label for="investment" class="block text-sm">Investment Amount (USD)</label>
-              <input type="number" id="investment" step="0.01" min="0" class="win95-input mt-1 w-full" placeholder="e.g., 1000">
+              <input type="number" id="investment" step="0.01" min="0" class="win95-input" placeholder="e.g., 1000">
             </div>
             <div>
               <label for="buyPrice" class="block text-sm">Buy Price (USD per Token)</label>
-              <input type="number" id="buyPrice" step="0.000001" min="0" class="win95-input mt-1 w-full" placeholder="e.g., 0.000337">
-              <button type="button" id="fetchBuyPrice" class="win95-button mt-2">Check Price</button>
+              <input type="number" id="buyPrice" step="0.000001" min="0" class="win95-input" placeholder="e.g., 0.001347">
+              <button type="button" id="fetchBuyPrice" class="win95-button" style="margin-top: 8px;">Check Price</button>
             </div>
             <div>
               <label for="sellPrice" class="block text-sm">Sell Price (USD per Token)</label>
-              <input type="number" id="sellPrice" step="0.000001" min="0" class="win95-input mt-1 w-full" placeholder="e.g., 0.001">
-              <button type="button" id="fetchSellPrice" class="win95-button mt-2">Check Price</button>
+              <input type="number" id="sellPrice" step="0.000001" min="0" class="win95-input" placeholder="e.g., 0.001">
+              <button type="button" id="fetchSellPrice" class="win95-button" style="margin-top: 8px;">Check Price</button>
             </div>
             <div>
               <label for="investmentFee" class="block text-sm">Investment Fee (%)</label>
-              <input type="number" id="investmentFee" step="0.01" min="0" class="win95-input mt-1 w-full" placeholder="e.g., 1.5">
-              <label for="exitFee" class="block text-sm mt-4">Exit Fee (%)</label>
-              <input type="number" id="exitFee" step="0.01" min="0" class="win95-input mt-1 w-full" placeholder="e.g., 1.5">
+              <input type="number" id="investmentFee" step="0.01" min="0" class="win95-input" placeholder="e.g., 1.5">
+              <label for="exitFee" class="block text-sm" style="margin-top: 16px;">Exit Fee (%)</label>
+              <input type="number" id="exitFee" step="0.01" min="0" class="win95-input" placeholder="e.g., 1.5">
             </div>
           </div>
-          <button type="submit" class="win95-button mt-6 w-full" id="calculateButton">Calculate</button>
+          <button type="submit" class="win95-button" style="width: 100%;">Calculate</button>
         </form>
+        <p id="error" class="error">Please fill in all fields with valid numbers.</p>
       </div>
     </div>
-    <div class="window hidden" id="resultsWindow">
+    <div class="window">
       <div class="title-bar">Investment Results</div>
-      <div class="content" id="results">
+      <div class="content hidden" id="results">
         <p><strong>Units Purchased:</strong> <span id="units"></span> Tokens</p>
         <p><strong>Total Cost:</strong> $<span id="totalCost"></span></p>
         <p><strong>Total Revenue:</strong> $<span id="totalRevenue"></span></p>
@@ -167,9 +194,11 @@
       </div>
     </div>
     <div class="window">
-      <div class="title-bar">Historical Price (Last 30 Days)</div>
+      <div class="title-bar" id="chartTitle">Historical VDO Price (Last 30 Days)</div>
       <div class="content">
         <canvas id="priceChart"></canvas>
+        <div id="loading" class="text-center" style="margin-top: 8px;">Loading data...</div>
+        <p id="chartError" class="error" style="margin-top: 8px;">Error loading chart data.</p>
       </div>
     </div>
     <div class="charts-container">
@@ -177,6 +206,7 @@
         <div class="title-bar">Token Holders</div>
         <div class="content">
           <canvas id="holderChart" class="holder-chart"></canvas>
+          <p id="holderError" class="error" style="margin-top: 8px;">Holder data unavailable.</p>
         </div>
       </div>
       <div class="window pie-window">
@@ -187,14 +217,14 @@
       </div>
     </div>
     <div class="window">
-      <div class="title-bar">What is this dashboard?</div>
+      <div class="title-bar">SEO Description</div>
       <div class="content">
-        <textarea class="win95-input w-full h-24" id="SUSEText" readonly spellcheck="false">This dashboard helps you see how much you could make or lose by investing in Voodoo, Magic, or the Poison Reward Token. You can enter things like how much money you want to invest, the price you buy and sell at, and any fees. The dashboard will then show you your possible profit or loss. It also lets you check the current price and see how the price has changed over the last 30 days. Additionally, it tracks the number of token holders for the selected token (Voodoo, Magic, or Poison) starting from May 5, 2025, with a compact chart below the price chart that adapts to show daily, weekly, monthly, or yearly data to remain clear even after 10 years, alongside a placeholder distribution pie chart in a separate box.</textarea>
+        <textarea class="win95-input" style="width: 100%; height: 96px;" id="seoText">Voodoo Token (VDO), MAGIC, and POISON are meme coins on PulseChain, offering staking with up to 30% APY, gambling, and ecommerce utilities. Explore for high-yield crypto investments.</textarea>
       </div>
     </div>
     <div class="window">
       <div class="title-bar">Links</div>
-      <div class="content flex flex-wrap justify-center">
+      <div class="content links-container">
         <a href="https://voodootoken.com/" class="custom-button">Back to Website</a>
         <a href="https://voodootoken.com/hovihev/uploads/2025/01/Voodoo-Token-Whitepaper-V1.pdf" class="custom-button">Read Whitepaper</a>
         <a href="https://t.me/voodootokengroup/" class="custom-button">Join Telegram</a>
@@ -208,12 +238,7 @@
     const API_KEY = 'ddd9175e-6cb0-4fed-babc-8a54cd255c0e';
     const API_URL = 'https://api.livecoinwatch.com/coins/single';
     const HISTORY_URL = 'https://api.livecoinwatch.com/coins/single/history';
-    const PULSECHAIN_API = 'https://api.scan.pulsechain.com/api/v2/tokens/';
-
-    // Cache durations (in seconds)
-    const CURRENT_PRICE_CACHE_DURATION = 3600; // 1 hour
-    const HISTORICAL_PRICE_CACHE_DURATION = 86400; // 24 hours
-    const HOLDERS_CACHE_DURATION = 86400; // 24 hours
+    const PULSECHAIN_API = 'https://api.scan.pulsechain.com/api/v2';
 
     // Token configurations
     const tokens = {
@@ -231,18 +256,26 @@
       }
     };
 
+    // Map token names to API codes
+    const tokenCodeMap = {
+      'VDO': 'VDO',
+      '__________MAGIC': 'MAGIC',
+      '__POISON': 'POISON'
+    };
+
     // Form elements
     const form = document.getElementById('investmentForm');
-    const resultsWindow = document.getElementById('resultsWindow');
-    const calculateButton = document.getElementById('calculateButton');
+    const error = document.getElementById('error');
+    const results = document.getElementById('results');
     const fetchBuyPriceBtn = document.getElementById('fetchBuyPrice');
     const fetchSellPriceBtn = document.getElementById('fetchSellPrice');
     const logos = document.querySelectorAll('.logo');
+    const chartTitle = document.getElementById('chartTitle');
+    const holderError = document.getElementById('holderError');
     let selectedToken = 'VDO';
     let chartInstance = null;
     let holderChartInstance = null;
     let pieChartInstance = null;
-    let buttonTimeout = null;
 
     // Token selector
     logos.forEach(logo => {
@@ -252,69 +285,17 @@
         selectedToken = logo.dataset.token;
         document.getElementById('buyPrice').value = '';
         document.getElementById('sellPrice').value = '';
-        document.querySelector('.window:nth-child(4) .title-bar').textContent = `Historical ${selectedToken} Price (Last 30 Days)`;
+        chartTitle.textContent = `Historical ${tokenCodeMap[selectedToken]} Price (Last 30 Days)`;
         renderChart();
         renderHolderChart(selectedToken);
         renderPieChart();
+        fetchCurrentPrice(); // Update price immediately on token switch
       });
     });
 
-    // Function to show error on button
-    function showButtonError(message) {
-      calculateButton.textContent = message;
-      calculateButton.style.color = '#ff0000';
-      
-      if (buttonTimeout) {
-        clearTimeout(buttonTimeout);
-      }
-      
-      buttonTimeout = setTimeout(() => {
-        calculateButton.textContent = 'Calculate';
-        calculateButton.style.color = '';
-        buttonTimeout = null;
-      }, 5000);
-    }
-
-    // Map token names to API codes
-    const tokenCodeMap = {
-      'VDO': 'VDO',
-      'MAGIC': '__________MAGIC',
-      'POISON': '__POISON'
-    };
-
-    // Helper function to get cached data from localStorage
-    function getCachedData(key) {
-      try {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : null;
-      } catch (err) {
-        console.error(`Error reading ${key} from localStorage:`, err);
-        return null;
-      }
-    }
-
-    // Helper function to set cached data in localStorage
-    function setCachedData(key, data, timestamp) {
-      try {
-        localStorage.setItem(key, JSON.stringify({ data, timestamp }));
-      } catch (err) {
-        console.error(`Error saving ${key} to localStorage:`, err);
-      }
-    }
-
     // Fetch current price for selected token
     async function fetchCurrentPrice() {
-      const cacheKey = `voodoo_currentPrice_${selectedToken}`;
-      const cached = getCachedData(cacheKey);
-      const now = Date.now() / 1000;
-
-      if (cached && (now - cached.timestamp) < CURRENT_PRICE_CACHE_DURATION) {
-        console.log(`${selectedToken} current price from cache:`, cached.data);
-        return cached.data;
-      }
-
       try {
-        const tokenCode = tokenCodeMap[selectedToken];
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: {
@@ -323,46 +304,31 @@
           },
           body: JSON.stringify({
             currency: 'USD',
-            code: tokenCode,
+            code: selectedToken,
             meta: false
           })
         });
-        if (!response.ok) throw new Error(`API response not OK for ${tokenCode}`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
         const data = await response.json();
-        console.log(`${selectedToken} current price from API:`, data.rate);
-        
-        setCachedData(cacheKey, data.rate, now);
-        return data.rate;
+        const price = parseFloat(data.rate);
+        error.style.display = 'none';
+        return price;
       } catch (err) {
-        console.error(`Error fetching price for ${selectedToken}:`, err);
-        showButtonError(`Failed to fetch ${selectedToken} price.`);
-        
-        if (cached) {
-          console.log(`${selectedToken} using outdated cached price:`, cached.data);
-          return cached.data;
-        }
-        
-        return selectedToken === 'VDO' ? 0.00033742909594797763 : 
-               selectedToken === 'MAGIC' ? 0.000771673230634273 : 
-               0.0010286399907437705;
+        console.error(`Error fetching current price for ${selectedToken}:`, err);
+        error.textContent = `Error fetching price for ${tokenCodeMap[selectedToken]}: ${err.message}`;
+        error.style.display = 'block';
+        return null;
       }
     }
 
-    // Fetch historical price data
+    // Fetch historical price data for selected token
     async function fetchHistoricalPrice() {
-      const cacheKey = `voodoo_historicalPrice_${selectedToken}`;
-      const cached = getCachedData(cacheKey);
-      const now = Date.now() / 1000;
-
-      if (cached && (now - cached.timestamp) < HISTORICAL_PRICE_CACHE_DURATION) {
-        console.log(`${selectedToken} historical data from cache:`, cached.data);
-        return cached.data;
-      }
+      const end = Date.now();
+      const start = end - 30 * 24 * 60 * 60 * 1000; // Last 30 days
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('chartError').style.display = 'none';
 
       try {
-        const tokenCode = tokenCodeMap[selectedToken];
-        const end = new Date('2025-05-05').getTime();
-        const start = end - 30 * 24 * 60 * 60 * 1000;
         const response = await fetch(HISTORY_URL, {
           method: 'POST',
           headers: {
@@ -371,74 +337,67 @@
           },
           body: JSON.stringify({
             currency: 'USD',
-            code: tokenCode,
+            code: selectedToken,
             start,
             end
           })
         });
-        if (!response.ok) throw new Error(`API response not OK for ${tokenCode}`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
         const data = await response.json();
-        const historicalData = data.history.map(entry => ({
-          date: new Date(entry.date).toLocaleDateString(),
-          price: entry.rate
+        if (!data.history || !Array.isArray(data.history)) {
+          throw new Error('Historical data is not an array');
+        }
+        if (data.history.length === 0) {
+          throw new Error('No historical data available');
+        }
+        return data.history.map(entry => ({
+          date: new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+          price: parseFloat(entry.rate)
         }));
-        console.log(`${selectedToken} historical data from API:`, historicalData);
-        
-        setCachedData(cacheKey, historicalData, now);
-        return historicalData;
       } catch (err) {
         console.error(`Error fetching historical price for ${selectedToken}:`, err);
-        
-        if (cached) {
-          console.log(`${selectedToken} using outdated cached historical data:`, cached.data);
-          return cached.data;
-        }
-        
+        document.getElementById('chartError').textContent = `Error: ${err.message}`;
+        document.getElementById('chartError').style.display = 'block';
         return [];
+      } finally {
+        document.getElementById('loading').style.display = 'none';
       }
     }
 
     // Fetch holder count for a token
     async function fetchHolderCount(token) {
-      const cacheKey = `holders_${token}_${new Date().toISOString().split('T')[0]}`;
-      const cached = getCachedData(cacheKey);
-      const now = Date.now() / 1000;
-
-      if (cached && (now - cached.timestamp) < HOLDERS_CACHE_DURATION) {
-        console.log(`${token} holders from cache:`, cached.data);
-        return cached.data;
-      }
-
+      const tokenName = tokenCodeMap[token];
       try {
-        const response = await fetch(`${PULSECHAIN_API}${tokens[token].address}`, {
+        const response = await fetch(`${PULSECHAIN_API}/tokens/${tokens[tokenName].address}/counters`, {
           method: 'GET',
           headers: {
             'accept': 'application/json'
           }
         });
-        if (!response.ok) throw new Error(`API response not OK for ${token}`);
+        if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
         const data = await response.json();
-        const holders = data.holders_count;
-        console.log(`${token} holders from API:`, holders);
-        
-        setCachedData(cacheKey, holders, now);
+        const holders = parseInt(data.token_holders_count || '0');
+        console.log(`Fetched holders for ${tokenName}:`, holders);
         return holders;
       } catch (err) {
-        console.error(`Error fetching holders for ${token}:`, err);
-        return null;
+        console.error(`Error fetching holders for ${tokenName}: ${err.message}`, {
+          status: err.status,
+          statusText: err.statusText,
+          address: tokens[tokenName].address
+        });
+        return 0; // Fallback to 0 holders
       }
     }
 
     // Aggregate holder data based on time range
     function aggregateHolderData(data) {
-      const today = new Date('2025-05-05');
+      const today = new Date();
       const aggregated = [];
       const dailyLimit = 30; // 30 days of daily data
       const weeklyLimit = 365; // ~1 year of weekly data
       const monthlyLimit = 3 * 365; // ~3 years of monthly data
 
       let currentGroup = [];
-      let currentDate = new Date(data[0].date);
       let groupType = 'daily';
 
       data.forEach((entry, index) => {
@@ -493,11 +452,11 @@
       return aggregated;
     }
 
-    // Simulate 10 years of holder data (for testing, replace with real data collection)
+    // Simulate holder data (for testing, limited to recent data)
     async function getHolderData(token) {
       const cacheKey = `holder_history_${token}`;
       let holderData = getCachedData(cacheKey)?.data || [];
-      const today = new Date('2025-05-05');
+      const today = new Date();
       const todayStr = today.toISOString().split('T')[0];
 
       // Check if today's data is already stored
@@ -512,25 +471,88 @@
         }
       }
 
-      // Simulate 10 years of data for testing (comment out in production)
-      if (holderData.length === 1) {
-        let lastHolders = holderData[0].holders;
-        for (let i = 1; i < 3650; i++) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          const dateStr = date.toISOString().split('T')[0];
-          lastHolders += Math.floor(Math.random() * 10 - 5); // Random walk for simulation
-          if (lastHolders < 0) lastHolders = 0;
-          holderData.push({
-            date: dateStr,
-            holders: lastHolders
-          });
-        }
-        holderData.reverse(); // Chronological order
-        setCachedData(cacheKey, holderData, Date.now() / 1000);
+      return aggregateHolderData(holderData);
+    }
+
+    // Helper function to get cached data from localStorage
+    function getCachedData(key) {
+      try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+      } catch (err) {
+        console.error(`Error reading ${key} from localStorage:`, err);
+        return null;
+      }
+    }
+
+    // Helper function to set cached data in localStorage
+    function setCachedData(key, data, timestamp) {
+      try {
+        localStorage.setItem(key, JSON.stringify({ data, timestamp }));
+      } catch (err) {
+        console.error(`Error saving ${key} to localStorage:`, err);
+      }
+    }
+
+    // Render historical price chart
+    async function renderChart() {
+      const historicalData = await fetchHistoricalPrice();
+      const chartContainer = document.getElementById('priceChart').parentElement;
+
+      if (!historicalData.length) {
+        chartContainer.style.display = 'none';
+        return;
       }
 
-      return aggregateHolderData(holderData);
+      chartContainer.style.display = 'block';
+      const ctx = document.getElementById('priceChart').getContext('2d');
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: historicalData.map(d => d.date),
+          datasets: [{
+            label: `${tokenCodeMap[selectedToken]} Price (USD)`,
+            data: historicalData.map(d => d.price),
+            borderColor: tokens[tokenCodeMap[selectedToken]].color,
+            backgroundColor: tokens[tokenCodeMap[selectedToken]].color + '33',
+            fill: true,
+            pointRadius: 0,
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { 
+              title: { display: true, text: 'Date' },
+              ticks: { maxTicksLimit: 6 }
+            },
+            y: { 
+              title: { display: true, text: 'Price (USD)' },
+              ticks: {
+                callback: function(value) {
+                  return '$' + value.toFixed(6);
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                label: context => `$${context.parsed.y.toFixed(6)}`
+              }
+            }
+          }
+        }
+      });
     }
 
     // Render holder chart for the selected token
@@ -538,21 +560,25 @@
       const holderData = await getHolderData(token);
       const canvas = document.getElementById('holderChart');
       const ctx = canvas.getContext('2d');
+      const tokenName = tokenCodeMap[token];
 
       if (holderChartInstance) {
         holderChartInstance.destroy();
       }
 
-      if (!holderData.length) {
+      holderError.style.display = 'none';
+      if (!holderData.length || holderData.every(d => d.holders === 0)) {
+        holderError.textContent = `Holder data unavailable for ${tokenName}`;
+        holderError.style.display = 'block';
         holderChartInstance = new Chart(ctx, {
           type: 'line',
           data: {
             labels: ['No Data'],
             datasets: [{
-              label: `${token} Holders`,
+              label: `${tokenName} Holders`,
               data: [0],
-              borderColor: tokens[token].color,
-              backgroundColor: tokens[token].color + '33',
+              borderColor: tokens[tokenName].color,
+              backgroundColor: tokens[tokenName].color + '33',
               fill: true
             }]
           },
@@ -579,10 +605,10 @@
         data: {
           labels: holderData.map(d => d.date),
           datasets: [{
-            label: `${token} Holders`,
+            label: `${tokenName} Holders`,
             data: holderData.map(d => d.holders),
-            borderColor: tokens[token].color,
-            backgroundColor: tokens[token].color + '33',
+            borderColor: tokens[tokenName].color,
+            backgroundColor: tokens[tokenName].color + '33',
             fill: true
           }]
         },
@@ -599,7 +625,7 @@
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return `${token} Holders: ${context.parsed.y.toFixed(0)}`;
+                  return `${tokenName} Holders: ${context.parsed.y.toFixed(0)}`;
                 }
               }
             },
@@ -618,6 +644,7 @@
         pieChartInstance.destroy();
       }
 
+      const tokenName = tokenCodeMap[selectedToken];
       pieChartInstance = new Chart(ctx, {
         type: 'pie',
         data: {
@@ -625,9 +652,9 @@
           datasets: [{
             data: [33, 33, 34],
             backgroundColor: [
-              tokens[selectedToken].color + '99',
-              tokens[selectedToken].color + '66',
-              tokens[selectedToken].color + '33'
+              tokens[tokenName].color + '99',
+              tokens[tokenName].color + '66',
+              tokens[tokenName].color + '33'
             ],
             borderColor: '#000',
             borderWidth: 1
@@ -642,93 +669,6 @@
               labels: { font: { size: 10 } }
             },
             tooltip: { enabled: false }
-          }
-        }
-      });
-    }
-
-    // Render historical price chart
-    async function renderChart() {
-      const historicalData = await fetchHistoricalPrice();
-      const chartContainer = document.getElementById('priceChart').parentElement;
-      const canvas = document.getElementById('priceChart');
-      
-      chartContainer.style.display = 'block';
-      const ctx = canvas.getContext('2d');
-      
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-
-      if (!historicalData.length) {
-        chartInstance = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: ['No Data'],
-            datasets: [{
-              label: `${selectedToken} Price (USD)`,
-              data: [0],
-              borderColor: tokens[selectedToken].color,
-              backgroundColor: tokens[selectedToken].color + '33',
-              fill: true
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              x: { title: { display: true, text: 'Date' } },
-              y: { 
-                title: { display: true, text: 'Price (USD)' },
-                ticks: {
-                  callback: function(value) {
-                    return '$' + value.toFixed(6);
-                  }
-                }
-              }
-            },
-            plugins: {
-              tooltip: { enabled: false },
-              legend: { display: false }
-            }
-          }
-        });
-        return;
-      }
-
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: historicalData.map(d => d.date),
-          datasets: [{
-            label: `${selectedToken} Price (USD)`,
-            data: historicalData.map(d => d.price),
-            borderColor: tokens[selectedToken].color,
-            backgroundColor: tokens[selectedToken].color + '33',
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: { title: { display: true, text: 'Date' } },
-            y: { 
-              title: { display: true, text: 'Price (USD)' },
-              ticks: {
-                callback: function(value) {
-                  return '$' + value.toFixed(6);
-                }
-              }
-            }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `${selectedToken} Price: $${context.parsed.y.toFixed(6)}`;
-                }
-              }
-            },
-            legend: { display: true }
           }
         }
       });
@@ -756,11 +696,13 @@
       const exitFee = parseFloat(document.getElementById('exitFee').value) || 0;
 
       if (isNaN(investment) || isNaN(buyPrice) || isNaN(sellPrice) || investment <= 0 || buyPrice <= 0 || sellPrice <= 0) {
-        showButtonError('Please fill in all fields with valid numbers.');
-        resultsWindow.classList.add('hidden');
+        error.textContent = 'Please fill in all fields with valid numbers.';
+        error.style.display = 'block';
+        results.classList.add('hidden');
         return;
       }
 
+      error.style.display = 'none';
       const units = investment / buyPrice;
       const totalCost = investment + (investment * investmentFee / 100);
       const totalRevenue = (units * sellPrice) * (1 - exitFee / 100);
@@ -772,13 +714,24 @@
       document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2);
       document.getElementById('profitLoss').textContent = profitLoss.toFixed(2);
       document.getElementById('roi').textContent = roi.toFixed(2);
-      resultsWindow.classList.remove('hidden');
+      results.classList.remove('hidden');
     });
 
-    // Initialize charts
-    renderChart();
-    renderHolderChart('VDO');
-    renderPieChart();
+    // Initial load and periodic updates
+    async function init() {
+      await renderChart();
+      await renderHolderChart('VDO');
+      renderPieChart();
+      const price = await fetchCurrentPrice();
+      if (price) {
+        document.getElementById('buyPrice').value = price.toFixed(6);
+        document.getElementById('sellPrice').value = price.toFixed(6);
+      }
+    }
+
+    init();
+    setInterval(fetchCurrentPrice, 10000); // Update price every 10 seconds
+    setInterval(renderChart, 300000); // Update chart every 5 minutes
   </script>
 </body>
 </html>
