@@ -218,7 +218,7 @@
     <div class="window">
       <div class="title-bar">What you need to know</div>
       <div class="content">
-        <textarea class="win95-input" style="width: 100%; height: 96px;" id="seoText">This dashboard lets you easily track the prices of Voodoo, MAGIC, and the POISON Reward Tokens. You can calculate potential profits or losses, view recent price trends, see how many holders it has, and check how the tokens are distributed-all in one simple place.</textarea>
+        <textarea class="win95-input" style="width: 100%; height: 96px;" id="seoText">This is the right place to easily track the prices of Voodoo, MAGIC, and POISON Reward Tokens. You can calculate potential profits or losses, view recent price trends, analyze holder counts, and check how the token supplies are distributed - all in one simple platform.</textarea>
       </div>
     </div>
     <div class="window">
@@ -630,7 +630,7 @@
       });
     }
 
-    // Render pie chart with Voodoo Token distribution
+    // Render pie chart with token distribution
     function renderPieChart() {
       const canvas = document.getElementById('pieChart');
       const ctx = canvas.getContext('2d');
@@ -641,23 +641,28 @@
 
       const tokenName = selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON';
       const isVoodoo = selectedToken === 'VDO';
-      
+
       pieChartInstance = new Chart(ctx, {
         type: 'pie',
         data: {
           labels: isVoodoo 
             ? ['Liquidity Pools', 'Marketing & Buyback', 'Burn Events', 'Holders Redistribution']
-            : ['Placeholder 1', 'Placeholder 2', 'Placeholder 3'],
+            : ['Liquidity Pools', 'Holders Redistribution'],
           datasets: [{
             data: isVoodoo 
               ? [30, 15, 5, 50]
-              : [33, 33, 34],
-            backgroundColor: [
-              tokens[tokenName].color + '99', // e.g., #00008099
-              tokens[tokenName].color + '66', // e.g., #00008066
-              tokens[tokenName].color + '33', // e.g., #00008033
-              isVoodoo ? tokens[tokenName].color + 'BB' : undefined // Add fourth color for Voodoo only
-            ].filter(Boolean),
+              : [30, 70],
+            backgroundColor: isVoodoo 
+              ? [
+                  tokens[tokenName].color + '99', // e.g., #00008099
+                  tokens[tokenName].color + '66', // e.g., #00008066
+                  tokens[tokenName].color + '33', // e.g., #00008033
+                  tokens[tokenName].color + 'BB'  // e.g., #000080BB
+                ]
+              : [
+                  tokens[tokenName].color + '99', // e.g., #80008099 for MAGIC, #26813799 for POISON
+                  tokens[tokenName].color + '66'  // e.g., #80008066 for MAGIC, #26813766 for POISON
+                ],
             borderColor: '#000',
             borderWidth: 1
           }]
@@ -670,8 +675,8 @@
               position: 'bottom',
               labels: { 
                 font: { size: 10 },
-                boxWidth: 10, // Smaller box to fit two items per row
-                padding: 10, // Space between legend items
+                boxWidth: 10,
+                padding: 10,
                 generateLabels: function(chart) {
                   const data = chart.data;
                   return data.labels.map((label, i) => ({
@@ -684,8 +689,7 @@
                   }));
                 }
               },
-              // Ensure two items per row by setting maxWidth
-              maxWidth: 300 // Adjust to force wrapping into two columns
+              maxWidth: 300
             },
             tooltip: {
               enabled: true,
@@ -700,7 +704,7 @@
           },
           layout: {
             padding: {
-              bottom: 20 // Extra space to ensure legend fits well
+              bottom: 20
             }
           }
         }
