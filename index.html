@@ -206,7 +206,6 @@
         <div class="title-bar">Token Holders</div>
         <div class="content">
           <canvas id="holderChart" class="holder-chart"></canvas>
-          <p id="holderError" class="error" style="margin-top: 8px;">Holder data unavailable.</p>
         </div>
       </div>
       <div class="window pie-window">
@@ -259,8 +258,8 @@
     // Map token names to API codes
     const tokenCodeMap = {
       'VDO': 'VDO',
-      '__________MAGIC': 'MAGIC',
-      '__POISON': 'POISON'
+      '__________MAGIC': '__________MAGIC',
+      '__POISON': '__POISON'
     };
 
     // Form elements
@@ -271,7 +270,6 @@
     const fetchSellPriceBtn = document.getElementById('fetchSellPrice');
     const logos = document.querySelectorAll('.logo');
     const chartTitle = document.getElementById('chartTitle');
-    const holderError = document.getElementById('holderError');
     let selectedToken = 'VDO';
     let chartInstance = null;
     let holderChartInstance = null;
@@ -285,7 +283,7 @@
         selectedToken = logo.dataset.token;
         document.getElementById('buyPrice').value = '';
         document.getElementById('sellPrice').value = '';
-        chartTitle.textContent = `Historical ${tokenCodeMap[selectedToken]} Price (Last 30 Days)`;
+        chartTitle.textContent = `Historical ${selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON'} Price (Last 30 Days)`;
         renderChart();
         renderHolderChart(selectedToken);
         renderPieChart();
@@ -311,12 +309,12 @@
         if (!response.ok) throw new Error(`API error: ${response.status}`);
         const data = await response.json();
         const price = parseFloat(data.rate);
-        error.style.display = 'none';
+        document.getElementById('error').style.display = 'none';
         return price;
       } catch (err) {
         console.error(`Error fetching current price for ${selectedToken}:`, err);
-        error.textContent = `Error fetching price for ${tokenCodeMap[selectedToken]}: ${err.message}`;
-        error.style.display = 'block';
+        document.getElementById('error').textContent = `Error fetching price for ${selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON'}: ${err.message}`;
+        document.getElementById('error').style.display = 'block';
         return null;
       }
     }
@@ -366,8 +364,8 @@
 
     // Fetch holder count for a token
     async function fetchHolderCount(token) {
-      const tokenName = tokenCodeMap[token];
       try {
+        const tokenName = Object.keys(tokenCodeMap).find(key => tokenCodeMap[key] === token);
         const response = await fetch(`${PULSECHAIN_API}/tokens/${tokens[tokenName].address}/counters`, {
           method: 'GET',
           headers: {
@@ -380,12 +378,8 @@
         console.log(`Fetched holders for ${tokenName}:`, holders);
         return holders;
       } catch (err) {
-        console.error(`Error fetching holders for ${tokenName}: ${err.message}`, {
-          status: err.status,
-          statusText: err.statusText,
-          address: tokens[tokenName].address
-        });
-        return 0; // Fallback to 0 holders
+        console.error(`Error fetching holders for ${token}: ${err.message}`);
+        return null;
       }
     }
 
@@ -516,10 +510,14 @@
         data: {
           labels: historicalData.map(d => d.date),
           datasets: [{
-            label: `${tokenCodeMap[selectedToken]} Price (USD)`,
+            label: `${selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON'} Price (USD)`,
             data: historicalData.map(d => d.price),
-            borderColor: tokens[tokenCodeMap[selectedToken]].color,
-            backgroundColor: tokens[tokenCodeMap[selectedToken]].color + '33',
+            borderColor: selectedToken === 'VDO' ? '#000080' : 
+                         selectedToken === '__________MAGIC' ? '#800080' : 
+                         '#268137',
+            backgroundColor: selectedToken === 'VDO' ? 'rgba(0, 0, 128, 0.2)' : 
+                             selectedToken === '__________MAGIC' ? 'rgba(128, 0, 128, 0.2)' : 
+                             'rgba(38, 129, 55, 0.2)',
             fill: true,
             pointRadius: 0,
             tension: 0.1
@@ -560,16 +558,13 @@
       const holderData = await getHolderData(token);
       const canvas = document.getElementById('holderChart');
       const ctx = canvas.getContext('2d');
-      const tokenName = tokenCodeMap[token];
+      const tokenName = token === 'VDO' ? 'VDO' : token === '__________MAGIC' ? 'MAGIC' : 'POISON';
 
       if (holderChartInstance) {
         holderChartInstance.destroy();
       }
 
-      holderError.style.display = 'none';
-      if (!holderData.length || holderData.every(d => d.holders === 0)) {
-        holderError.textContent = `Holder data unavailable for ${tokenName}`;
-        holderError.style.display = 'block';
+      if (!holderData.length) {
         holderChartInstance = new Chart(ctx, {
           type: 'line',
           data: {
@@ -644,7 +639,7 @@
         pieChartInstance.destroy();
       }
 
-      const tokenName = tokenCodeMap[selectedToken];
+      const tokenName = selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON';
       pieChartInstance = new Chart(ctx, {
         type: 'pie',
         data: {
