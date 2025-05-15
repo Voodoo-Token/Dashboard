@@ -630,7 +630,7 @@
       });
     }
 
-    // Render placeholder pie chart
+    // Render pie chart with Voodoo Token distribution
     function renderPieChart() {
       const canvas = document.getElementById('pieChart');
       const ctx = canvas.getContext('2d');
@@ -640,17 +640,24 @@
       }
 
       const tokenName = selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON';
+      const isVoodoo = selectedToken === 'VDO';
+      
       pieChartInstance = new Chart(ctx, {
         type: 'pie',
         data: {
-          labels: ['Placeholder 1', 'Placeholder 2', 'Placeholder 3'],
+          labels: isVoodoo 
+            ? ['Liquidity Pools', 'Marketing & Buyback', 'Burn Events', 'Holders Redistribution']
+            : ['Placeholder 1', 'Placeholder 2', 'Placeholder 3'],
           datasets: [{
-            data: [33, 33, 34],
+            data: isVoodoo 
+              ? [30, 15, 5, 50]
+              : [33, 33, 34],
             backgroundColor: [
-              tokens[tokenName].color + '99',
-              tokens[tokenName].color + '66',
-              tokens[tokenName].color + '33'
-            ],
+              tokens[tokenName].color + '99', // e.g., #00008099
+              tokens[tokenName].color + '66', // e.g., #00008066
+              tokens[tokenName].color + '33', // e.g., #00008033
+              isVoodoo ? tokens[tokenName].color + 'BB' : undefined // Add fourth color for Voodoo only
+            ].filter(Boolean),
             borderColor: '#000',
             borderWidth: 1
           }]
@@ -661,9 +668,40 @@
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { font: { size: 10 } }
+              labels: { 
+                font: { size: 10 },
+                boxWidth: 10, // Smaller box to fit two items per row
+                padding: 10, // Space between legend items
+                generateLabels: function(chart) {
+                  const data = chart.data;
+                  return data.labels.map((label, i) => ({
+                    text: label,
+                    fillStyle: data.datasets[0].backgroundColor[i],
+                    strokeStyle: data.datasets[0].borderColor,
+                    lineWidth: data.datasets[0].borderWidth,
+                    hidden: isNaN(data.datasets[0].data[i]) || chart.getDataVisibility(i) === false,
+                    index: i
+                  }));
+                }
+              },
+              // Ensure two items per row by setting maxWidth
+              maxWidth: 300 // Adjust to force wrapping into two columns
             },
-            tooltip: { enabled: false }
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  return `${label}: ${value}%`;
+                }
+              }
+            }
+          },
+          layout: {
+            padding: {
+              bottom: 20 // Extra space to ensure legend fits well
+            }
           }
         }
       });
