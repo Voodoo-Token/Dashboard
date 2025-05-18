@@ -37,7 +37,7 @@
     .content {
       padding: 10px;
     }
-    .win95-input {
+    .win95-input, .win95-select {
       background: #fff;
       border: 2px solid;
       border-color: #000 #fff #fff #000;
@@ -143,6 +143,9 @@
       width: 150px;
       height: 150px;
     }
+    .time-range-selector {
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -194,8 +197,20 @@
       </div>
     </div>
     <div class="window">
-      <div class="title-bar" id="chartTitle">Historical VDO Price (Last 30 Days)</div>
+      <div class="title-bar" id="chartTitle">Token Price Comparison</div>
       <div class="content">
+        <div class="time-range-selector">
+          <label for="timeRange" class="block text-sm">Select Time Range</label>
+          <select id="timeRange" class="win95-select">
+            <option value="24H">24 Hours</option>
+            <option value="7D">7 Days</option>
+            <option value="30D" selected>30 Days</option>
+            <option value="90D">90 Days</option>
+            <option value="12M">12 Months</option>
+            <option value="YTD">Year to Date</option>
+            <option value="ALL">All Time</option>
+          </select>
+        </div>
         <canvas id="priceChart"></canvas>
         <div id="loading" class="text-center" style="margin-top: 8px;">Loading data...</div>
         <p id="chartError" class="error" style="margin-top: 8px;">Error loading chart data.</p>
@@ -245,21 +260,23 @@
         address: '0x1c5f8e8E84AcC71650F7a627cfA5B24B80f44f00',
         color: '#000080'
       },
-      MAGIC: {
+      __________MAGIC: {
         address: '0xd63b9d8d6e38cb7fbfdceede3ce92f97f5aea7ac',
         color: '#800080'
       },
-      POISON: {
+      __POISON: {
         address: '0xb8c8761fed2aad5c0a75561bc604531a42c452e6',
         color: '#268137'
       }
     };
 
-    // Map token names to API codes
-    const tokenCodeMap = {
-      'VDO': 'VDO',
-      '__________MAGIC': '__________MAGIC',
-      '__POISON': '__POISON'
+    // Map token names to API codesimplicitly uses (require).
+
+    // Token configurations
+    const tokenInfo = {
+      'VDO': { apiCode: 'VDO', displayName: 'VDO' },
+      '__________MAGIC': { apiCode: '__________MAGIC', displayName: 'MAGIC' },
+      '__POISON': { apiCode: '__POISON', displayName: 'POISON' }
     };
 
     // Form elements
@@ -270,25 +287,58 @@
     const fetchSellPriceBtn = document.getElementById('fetchSellPrice');
     const logos = document.querySelectorAll('.logo');
     const chartTitle = document.getElementById('chartTitle');
+    const timeRangeSelect = document.getElementById('timeRange');
     let selectedToken = 'VDO';
+    let additionalTokens = []; // Tokens to compare with
     let chartInstance = null;
     let holderChartInstance = null;
     let pieChartInstance = null;
 
-    // Token selector
+    // Define comparison rules
+    const comparisonRules = {
+      'VDO': ['__________MAGIC', '__POISON'],
+      '__________MAGIC': ['VDO', '__POISON'],
+      '__POISON': ['VDO', '__________MAGIC']
+    };
+
+    // Token selector: Set primary token
     logos.forEach(logo => {
-      logo.addEventListener('click', () => {
-        logos.forEach(l => l.classList.remove('selected'));
-        logo.classList.add('selected');
-        selectedToken = logo.dataset.token;
-        document.getElementById('buyPrice').value = '';
-        document.getElementById('sellPrice').value = '';
-        chartTitle.textContent = `Historical ${selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON'} Price (Last 30 Days)`;
-        renderChart();
-        renderHolderChart(selectedToken);
-        renderPieChart();
-        fetchCurrentPrice(); // Update price immediately on token switch
+      logo.addEventListener('click', (e) => {
+        const token = logo.dataset.token;
+        if (e.ctrlKey || e.metaKey) {
+          // Toggle additional tokens for comparison
+          if (comparisonRules[selectedToken].includes(token) && token !== selectedToken) {
+            if (additionalTokens.includes(token)) {
+              additionalTokens = additionalTokens.filter(t => t !== token);
+              logo.classList.remove('selected');
+            } else {
+              additionalTokens.push(token);
+              logo.classList.add('selected');
+            }
+            renderChart();
+          }
+        } else {
+          // Set as primary token
+          logos.forEach(l => l.classList.remove('selected'));
+          logo.classList.add('selected');
+          selectedToken = token;
+          additionalTokens = []; // Reset additional tokens
+          comparisonRules[selectedToken].forEach(t => {
+            document.querySelector(`.logo[data-token="${t}"]`).classList.remove('selected');
+          });
+          document.getElementById('buyPrice').value = '';
+          document.getElementById('sellPrice').value = '';
+          renderChart();
+          renderHolderChart(selectedToken);
+          renderPieChart();
+          fetchCurrentPrice();
+        }
       });
+    });
+
+    // Time range change handler
+    timeRangeSelect.addEventListener('change', () => {
+      renderChart();
     });
 
     // Fetch current price for selected token
@@ -302,7 +352,7 @@
           },
           body: JSON.stringify({
             currency: 'USD',
-            code: selectedToken,
+            code: tokenInfo[selectedToken].apiCode,
             meta: false
           })
         });
@@ -312,21 +362,58 @@
         document.getElementById('error').style.display = 'none';
         return price;
       } catch (err) {
-        console.error(`Error fetching current price for ${selectedToken}:`, err);
-        document.getElementById('error').textContent = `Error fetching price for ${selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON'}: ${err.message}`;
+        console.error(`Error fetching current price for ${tokenInfo[selectedToken].displayName}:`, err);
+        document.getElementById('error').textContent = `Error fetching price for ${tokenInfo[selectedToken].displayName}: ${err.message}`;
         document.getElementById('error').style.display = 'block';
         return null;
       }
     }
 
-    // Fetch historical price data for selected token
-    async function fetchHistoricalPrice() {
+    // Calculate start time based on selected range
+    function getTimeRangeStart() {
       const end = Date.now();
-      const start = end - 30 * 24 * 60 * 60 * 1000; // Last 30 days
+      const range = timeRangeSelect.value;
+      let start;
+      switch (range) {
+        case '24H':
+          start = end - 24 * 60 * 60 * 1000; // 24 hours
+          break;
+        case '7D':
+          start = end - 7 * 24 * 60 * 60 * 1000; // 7 days
+          break;
+        case '30D':
+          start = end - 30 * 24 * 60 * 60 * 1000; // 30 days
+          break;
+        case '90D':
+          start = end - 90 * 24 * 60 * 60 * 1000; // 90 days
+          break;
+        case '12M':
+          start = end - 365 * 24 * 60 * 60 * 1000; // 12 months
+          break;
+        case 'YTD':
+          const now = new Date();
+          start = new Date(now.getFullYear(), 0, 1).getTime(); // Start of current year
+          break;
+        case 'ALL':
+          start = 0; // From the beginning
+          break;
+        default:
+          start = end - 30 * 24 * 60 * 60 * 1000; // Default to 30 days
+      }
+      return start;
+    }
+
+    // Fetch historical price data for a token
+    async function fetchHistoricalPrice(token) {
+      const end = Date.now();
+      const start = getTimeRangeStart();
+      const range = timeRangeSelect.value;
       document.getElementById('loading').style.display = 'block';
       document.getElementById('chartError').style.display = 'none';
 
       try {
+        // Adjust granularity for 24H to hourly data
+        const granularity = range === '24H' ? 3600000 : 86400000; // 1 hour for 24H, 1 day for others
         const response = await fetch(HISTORY_URL, {
           method: 'POST',
           headers: {
@@ -335,7 +422,7 @@
           },
           body: JSON.stringify({
             currency: 'USD',
-            code: selectedToken,
+            code: tokenInfo[token].apiCode,
             start,
             end
           })
@@ -348,12 +435,21 @@
         if (data.history.length === 0) {
           throw new Error('No historical data available');
         }
-        return data.history.map(entry => ({
-          date: new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+
+        // Aggregate data for 24H to reduce noise and improve accuracy
+        let aggregatedData = data.history;
+        if (range === '24H') {
+          aggregatedData = aggregate24HData(data.history);
+        }
+
+        return aggregatedData.map(entry => ({
+          date: range === '24H' 
+            ? new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
           price: parseFloat(entry.rate)
         }));
       } catch (err) {
-        console.error(`Error fetching historical price for ${selectedToken}:`, err);
+        console.error(`Error fetching historical price for ${tokenInfo[token].displayName}:`, err);
         document.getElementById('chartError').textContent = `Error: ${err.message}`;
         document.getElementById('chartError').style.display = 'block';
         return [];
@@ -362,11 +458,48 @@
       }
     }
 
+    // Aggregate 24H data to hourly intervals
+    function aggregate24HData(history) {
+      const hourlyData = [];
+      const interval = 3600000; // 1 hour in milliseconds
+      let currentInterval = Math.floor(history[0].date / interval) * interval;
+
+      let priceSum = 0;
+      let count = 0;
+
+      for (const entry of history) {
+        const entryTime = entry.date;
+        if (entryTime < currentInterval + interval) {
+          priceSum += parseFloat(entry.rate);
+          count++;
+        } else {
+          if (count > 0) {
+            hourlyData.push({
+              date: currentInterval,
+              rate: (priceSum / count).toString()
+            });
+          }
+          currentInterval += interval;
+          priceSum = parseFloat(entry.rate);
+          count = 1;
+        }
+      }
+
+      // Push the last interval if it has data
+      if (count > 0) {
+        hourlyData.push({
+          date: currentInterval,
+          rate: (priceSum / count).toString()
+        });
+      }
+
+      return hourlyData;
+    }
+
     // Fetch holder count for a token
     async function fetchHolderCount(token) {
       try {
-        const tokenName = Object.keys(tokenCodeMap).find(key => tokenCodeMap[key] === token);
-        const response = await fetch(`${PULSECHAIN_API}/tokens/${tokens[tokenName].address}/counters`, {
+        const response = await fetch(`${PULSECHAIN_API}/tokens/${tokens[token].address}/counters`, {
           method: 'GET',
           headers: {
             'accept': 'application/json'
@@ -375,7 +508,7 @@
         if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
         const data = await response.json();
         const holders = parseInt(data.token_holders_count || '0');
-        console.log(`Fetched holders for ${tokenName}:`, holders);
+        console.log(`Fetched holders for ${token}:`, holders);
         return holders;
       } catch (err) {
         console.error(`Error fetching holders for ${token}: ${err.message}`);
@@ -446,7 +579,7 @@
       return aggregated;
     }
 
-    // Simulate holder data (for testing, limited to recent data)
+    // Get holder data (simulated, limited to recent data)
     async function getHolderData(token) {
       const cacheKey = `holder_history_${token}`;
       let holderData = getCachedData(cacheKey)?.data || [];
@@ -488,16 +621,9 @@
       }
     }
 
-    // Render historical price chart
+    // Render historical price chart for selected and additional tokens
     async function renderChart() {
-      const historicalData = await fetchHistoricalPrice();
       const chartContainer = document.getElementById('priceChart').parentElement;
-
-      if (!historicalData.length) {
-        chartContainer.style.display = 'none';
-        return;
-      }
-
       chartContainer.style.display = 'block';
       const ctx = document.getElementById('priceChart').getContext('2d');
 
@@ -505,30 +631,51 @@
         chartInstance.destroy();
       }
 
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: historicalData.map(d => d.date),
-          datasets: [{
-            label: `${selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON'} Price (USD)`,
+      const tokensToDisplay = [selectedToken, ...additionalTokens];
+
+      const datasets = [];
+      let allLabels = [];
+
+      // Fetch data for all tokens to display
+      for (const token of tokensToDisplay) {
+        const historicalData = await fetchHistoricalPrice(token);
+        if (historicalData.length > 0) {
+          datasets.push({
+            label: `${tokenInfo[token].displayName} Price (USD)`,
             data: historicalData.map(d => d.price),
-            borderColor: selectedToken === 'VDO' ? '#000080' : 
-                         selectedToken === '__________MAGIC' ? '#800080' : 
-                         '#268137',
-            backgroundColor: selectedToken === 'VDO' ? 'rgba(0, 0, 128, 0.2)' : 
-                             selectedToken === '__________MAGIC' ? 'rgba(128, 0, 128, 0.2)' : 
-                             'rgba(38, 129, 55, 0.2)',
+            borderColor: tokens[token].color,
+            backgroundColor: tokens[token].color + '33',
             fill: true,
             pointRadius: 0,
             tension: 0.1
-          }]
+          });
+          // Collect labels
+          const labels = historicalData.map(d => d.date);
+          allLabels = [...new Set([...allLabels, ...labels])].sort((a, b) => {
+            const dateA = timeRangeSelect.value === '24H' ? new Date(`2025-05-18 ${a}`) : new Date(a);
+            const dateB = timeRangeSelect.value === '24H' ? new Date(`2025-05-18 ${b}`) : new Date(b);
+            return dateA - dateB;
+          });
+        }
+      }
+
+      if (datasets.length === 0) {
+        chartContainer.style.display = 'none';
+        return;
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: allLabels,
+          datasets: datasets
         },
         options: {
           responsive: true,
           scales: {
             x: { 
-              title: { display: true, text: 'Date' },
-              ticks: { maxTicksLimit: 6 }
+              title: { display: true, text: timeRangeSelect.value === '24H' ? 'Time' : 'Date' },
+              ticks: { maxTicksLimit: timeRangeSelect.value === '24H' ? 12 : 6 }
             },
             y: { 
               title: { display: true, text: 'Price (USD)' },
@@ -540,7 +687,7 @@
             }
           },
           plugins: {
-            legend: { display: false },
+            legend: { display: true },
             tooltip: {
               mode: 'index',
               intersect: false,
@@ -558,7 +705,7 @@
       const holderData = await getHolderData(token);
       const canvas = document.getElementById('holderChart');
       const ctx = canvas.getContext('2d');
-      const tokenName = token === 'VDO' ? 'VDO' : token === '__________MAGIC' ? 'MAGIC' : 'POISON';
+      const tokenName = tokenInfo[token].displayName;
 
       if (holderChartInstance) {
         holderChartInstance.destroy();
@@ -572,8 +719,8 @@
             datasets: [{
               label: `${tokenName} Holders`,
               data: [0],
-              borderColor: tokens[tokenName].color,
-              backgroundColor: tokens[tokenName].color + '33',
+              borderColor: tokens[token].color,
+              backgroundColor: tokens[token].color + '33',
               fill: true
             }]
           },
@@ -602,8 +749,8 @@
           datasets: [{
             label: `${tokenName} Holders`,
             data: holderData.map(d => d.holders),
-            borderColor: tokens[tokenName].color,
-            backgroundColor: tokens[tokenName].color + '33',
+            borderColor: tokens[token].color,
+            backgroundColor: tokens[token].color + '33',
             fill: true
           }]
         },
@@ -639,7 +786,7 @@
         pieChartInstance.destroy();
       }
 
-      const tokenName = selectedToken === 'VDO' ? 'VDO' : selectedToken === '__________MAGIC' ? 'MAGIC' : 'POISON';
+      const tokenName = tokenInfo[selectedToken].displayName;
       const isVoodoo = selectedToken === 'VDO';
 
       pieChartInstance = new Chart(ctx, {
@@ -654,14 +801,14 @@
               : [30, 70],
             backgroundColor: isVoodoo 
               ? [
-                  tokens[tokenName].color + '99', // e.g., #00008099
-                  tokens[tokenName].color + '66', // e.g., #00008066
-                  tokens[tokenName].color + '33', // e.g., #00008033
-                  tokens[tokenName].color + 'BB'  // e.g., #000080BB
+                  tokens[selectedToken].color + '99',
+                  tokens[selectedToken].color + '66',
+                  tokens[selectedToken].color + '33',
+                  tokens[selectedToken].color + 'BB'
                 ]
               : [
-                  tokens[tokenName].color + '99', // e.g., #80008099 for MAGIC, #26813799 for POISON
-                  tokens[tokenName].color + '66'  // e.g., #80008066 for MAGIC, #26813766 for POISON
+                  tokens[selectedToken].color + '99',
+                  tokens[selectedToken].color + '66'
                 ],
             borderColor: '#000',
             borderWidth: 1
