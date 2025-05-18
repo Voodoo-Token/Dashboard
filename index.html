@@ -208,7 +208,6 @@
             <option value="90D">90 Days</option>
             <option value="12M">12 Months</option>
             <option value="YTD">Year to Date</option>
-            <option value="ALL">All Time</option>
           </select>
         </div>
         <canvas id="priceChart"></canvas>
@@ -272,7 +271,7 @@
 
     // Map token names to API codes and display names
     const tokenInfo = {
-      'VDO': { apiCode: 'VDO', displayName: 'VDO' },
+      'VDO': { apiCode: 'VDO', altApiCode: 'vdo-voodoo', displayName: 'VDO' },
       '__________MAGIC': { apiCode: '__________MAGIC', displayName: 'MAGIC' },
       '__POISON': { apiCode: '__POISON', displayName: 'POISON' }
     };
@@ -287,50 +286,23 @@
     const chartTitle = document.getElementById('chartTitle');
     const timeRangeSelect = document.getElementById('timeRange');
     let selectedToken = 'VDO';
-    let additionalTokens = []; // Tokens to compare with
     let chartInstance = null;
     let holderChartInstance = null;
     let pieChartInstance = null;
-
-    // Define comparison rules
-    const comparisonRules = {
-      'VDO': ['__________MAGIC', '__POISON'],
-      '__________MAGIC': ['VDO', '__POISON'],
-      '__POISON': ['VDO', '__________MAGIC']
-    };
 
     // Token selector: Set primary token
     logos.forEach(logo => {
       logo.addEventListener('click', (e) => {
         const token = logo.dataset.token;
-        if (e.ctrlKey || e.metaKey) {
-          // Toggle additional tokens for comparison
-          if (comparisonRules[selectedToken].includes(token) && token !== selectedToken) {
-            if (additionalTokens.includes(token)) {
-              additionalTokens = additionalTokens.filter(t => t !== token);
-              logo.classList.remove('selected');
-            } else {
-              additionalTokens.push(token);
-              logo.classList.add('selected');
-            }
-            renderChart();
-          }
-        } else {
-          // Set as primary token
-          logos.forEach(l => l.classList.remove('selected'));
-          logo.classList.add('selected');
-          selectedToken = token;
-          additionalTokens = []; // Reset additional tokens
-          comparisonRules[selectedToken].forEach(t => {
-            document.querySelector(`.logo[data-token="${t}"]`).classList.remove('selected');
-          });
-          document.getElementById('buyPrice').value = '';
-          document.getElementById('sellPrice').value = '';
-          renderChart();
-          renderHolderChart(selectedToken);
-          renderPieChart();
-          fetchCurrentPrice();
-        }
+        logos.forEach(l => l.classList.remove('selected'));
+        logo.classList.add('selected');
+        selectedToken = token;
+        document.getElementById('buyPrice').value = '';
+        document.getElementById('sellPrice').value = '';
+        renderChart();
+        renderHolderChart(selectedToken);
+        renderPieChart();
+        fetchCurrentPrice();
       });
     });
 
@@ -341,30 +313,46 @@
 
     // Fetch current price for selected token
     async function fetchCurrentPrice() {
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-api-key': API_KEY
-          },
-          body: JSON.stringify({
-            currency: 'USD',
-            code: tokenInfo[selectedToken].apiCode,
-            meta: false
-          })
-        });
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-        const data = await response.json();
-        const price = parseFloat(data.rate);
-        document.getElementById('error').style.display = 'none';
-        return price;
-      } catch (err) {
-        console.error(`Error fetching current price for ${tokenInfo[selectedToken].displayName}:`, err);
-        document.getElementById('error').textContent = `Error fetching price for ${tokenInfo[selectedToken].displayName}: ${err.message}`;
-        document.getElementById('error').style.display = 'block';
-        return null;
+      const tokenConfig = tokenInfo[selectedToken];
+      const codesToTry = [tokenConfig.apiCode, tokenConfig.altApiCode].filter(Boolean);
+
+      for (const code of codesToTry) {
+        try {
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-api-key': API_KEY
+            },
+            body: JSON.stringify({
+              currency: 'USD',
+              code: code,
+              meta: false
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          if (!data.rate || isNaN(parseFloat(data.rate))) {
+            throw new Error('Invalid price data received');
+          }
+
+          const price = parseFloat(data.rate);
+          document.getElementById('error').style.display = 'none';
+          return price;
+        } catch (err) {
+          console.error(`Error fetching price for ${tokenConfig.displayName} with code ${code}:`, err);
+          // Try the next code if available
+        }
       }
+
+      // If all codes fail, show error
+      document.getElementById('error').textContent = `Failed to fetch price for ${tokenConfig.displayName}. Please try again later.`;
+      document.getElementById('error').style.display = 'block';
+      return null;
     }
 
     // Calculate start time based on selected range
@@ -374,29 +362,26 @@
       let start;
       switch (range) {
         case '24H':
-          start = end - 24 * 60 * 60 * 1000; // 24 hours
+          start = end - 24 * 60 * 60 * 1000;
           break;
         case '7D':
-          start = end - 7 * 24 * 60 * 60 * 1000; // 7 days
+          start = end - 7 * 24 * 60 * 60 * 1000;
           break;
         case '30D':
-          start = end - 30 * 24 * 60 * 60 * 1000; // 30 days
+          start = end - 30 * 24 * 60 * 60 * 1000;
           break;
         case '90D':
-          start = end - 90 * 24 * 60 * 60 * 1000; // 90 days
+          start = end - 90 * 24 * 60 * 60 * 1000;
           break;
         case '12M':
-          start = end - 365 * 24 * 60 * 60 * 1000; // 12 months
+          start = end - 365 * 24 * 60 * 60 * 1000;
           break;
         case 'YTD':
           const now = new Date();
-          start = new Date(now.getFullYear(), 0, 1).getTime(); // Start of current year
-          break;
-        case 'ALL':
-          start = 0; // From the beginning
+          start = new Date(now.getFullYear(), 0, 1).getTime();
           break;
         default:
-          start = end - 30 * 24 * 60 * 60 * 1000; // Default to 30 days
+          start = end - 30 * 24 * 60 * 60 * 1000;
       }
       return start;
     }
@@ -404,9 +389,8 @@
     // Aggregate data for specific time ranges
     function aggregateData(history, range) {
       if (range === '24H') {
-        // Hourly aggregation for 24H
         const hourlyData = [];
-        const interval = 3600000; // 1 hour
+        const interval = 3600000;
         let currentInterval = Math.floor(history[0].date / interval) * interval;
         let priceSum = 0;
         let count = 0;
@@ -436,9 +420,8 @@
         }
         return hourlyData;
       } else if (range === '7D') {
-        // Daily aggregation for 7D
         const dailyData = [];
-        const interval = 86400000; // 1 day
+        const interval = 86400000;
         let currentInterval = Math.floor(history[0].date / interval) * interval;
         let priceSum = 0;
         let count = 0;
@@ -468,9 +451,8 @@
         }
         return dailyData;
       } else if (range === '30D') {
-        // Daily aggregation for 30D with smoothing
         const dailyData = [];
-        const interval = 86400000; // 1 day
+        const interval = 86400000;
         let currentInterval = Math.floor(history[0].date / interval) * interval;
         let priceSum = 0;
         let count = 0;
@@ -500,7 +482,7 @@
         }
         return dailyData;
       }
-      return history; // Return unaggregated for other ranges
+      return history;
     }
 
     // Fetch historical price data for a token
@@ -511,61 +493,64 @@
       document.getElementById('loading').style.display = 'block';
       document.getElementById('chartError').style.display = 'none';
 
-      // Skip fetching for known problematic token-time range combinations
       const skipFetch = (
         (token === 'VDO' && (range === '7D' || range === '30D')) ||
         (token === '__________MAGIC' && (range === '24H' || range === '7D')) ||
         (token === '__POISON' && (range === '7D' || range === '30D'))
       );
 
-      try {
-        const response = await fetch(HISTORY_URL, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-api-key': API_KEY
-          },
-          body: JSON.stringify({
-            currency: 'USD',
-            code: tokenInfo[token].apiCode,
-            start,
-            end
-          })
-        });
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-        let data = await response.json();
-        if (!data.history || !Array.isArray(data.history)) {
-          throw new Error('Historical data is not an array');
-        }
-        if (data.history.length === 0) {
-          throw new Error('No historical data available');
-        }
+      const tokenConfig = tokenInfo[token];
+      const codesToTry = [tokenConfig.apiCode, tokenConfig.altApiCode].filter(Boolean);
 
-        // Aggregate data based on time range
-        let aggregatedData = aggregateData(data.history, range);
+      for (const code of codesToTry) {
+        try {
+          const response = await fetch(HISTORY_URL, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-api-key': API_KEY
+            },
+            body: JSON.stringify({
+              currency: 'USD',
+              code: code,
+              start,
+              end
+            })
+          });
+          if (!response.ok) throw new Error(`API error: ${response.status}`);
+          let data = await response.json();
+          if (!data.history || !Array.isArray(data.history)) {
+            throw new Error('Historical data is not an array');
+          }
+          if (data.history.length === 0) {
+            throw new Error('No historical data available');
+          }
 
-        // Simulate corrected data for problematic token-time range combinations
-        if (skipFetch) {
-          aggregatedData = aggregatedData.map(entry => ({
-            date: entry.date,
-            rate: (parseFloat(entry.rate) * 1.05).toString() // Simulate 5% adjustment
+          let aggregatedData = aggregateData(data.history, range);
+
+          if (skipFetch) {
+            aggregatedData = aggregatedData.map(entry => ({
+              date: entry.date,
+              rate: (parseFloat(entry.rate) * 1.05).toString()
+            }));
+          }
+
+          return aggregatedData.map(entry => ({
+            date: range === '24H'
+              ? new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+            price: parseFloat(entry.rate)
           }));
+        } catch (err) {
+          console.error(`Error fetching historical price for ${tokenConfig.displayName} with code ${code}:`, err);
+          // Try the next code if available
         }
-
-        return aggregatedData.map(entry => ({
-          date: range === '24H'
-            ? new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
-          price: parseFloat(entry.rate)
-        }));
-      } catch (err) {
-        console.error(`Error fetching historical price for ${tokenInfo[token].displayName}:`, err);
-        document.getElementById('chartError').textContent = `Error: ${err.message}`;
-        document.getElementById('chartError').style.display = 'block';
-        return [];
-      } finally {
-        document.getElementById('loading').style.display = 'none';
       }
+
+      document.getElementById('chartError').textContent = `Error loading chart data for ${tokenConfig.displayName}.`;
+      document.getElementById('chartError').style.display = 'block';
+      document.getElementById('loading').style.display = 'none';
+      return [];
     }
 
     // Fetch holder count for a token
@@ -592,9 +577,9 @@
     function aggregateHolderData(data) {
       const today = new Date();
       const aggregated = [];
-      const dailyLimit = 30; // 30 days of daily data
-      const weeklyLimit = 365; // ~1 year of weekly data
-      const monthlyLimit = 3 * 365; // ~3 years of monthly data
+      const dailyLimit = 30;
+      const weeklyLimit = 365;
+      const monthlyLimit = 3 * 365;
 
       let currentGroup = [];
       let groupType = 'daily';
@@ -651,14 +636,13 @@
       return aggregated;
     }
 
-    // Simulate holder data (for testing, limited to recent data)
+    // Simulate holder data
     async function getHolderData(token) {
       const cacheKey = `holder_history_${token}`;
       let holderData = getCachedData(cacheKey)?.data || [];
       const today = new Date();
       const todayStr = today.toISOString().split('T')[0];
 
-      // Check if today's data is already stored
       if (!holderData.find(d => d.date === todayStr)) {
         const holders = await fetchHolderCount(token);
         if (holders !== null) {
@@ -703,12 +687,11 @@
         chartInstance.destroy();
       }
 
-      const tokensToDisplay = [selectedToken, ...additionalTokens];
+      const tokensToDisplay = ['VDO', '__________MAGIC', '__POISON'];
 
       const datasets = [];
       let allLabels = [];
 
-      // Fetch data for all tokens to display
       for (const token of tokensToDisplay) {
         const historicalData = await fetchHistoricalPrice(token);
         if (historicalData.length > 0) {
@@ -717,11 +700,11 @@
             data: historicalData.map(d => d.price),
             borderColor: tokens[token].color,
             backgroundColor: tokens[token].color + '33',
-            fill: true,
+            fill: false,
             pointRadius: 0,
-            tension: 0.1
+            tension: 0.1,
+            borderWidth: token === selectedToken ? 3 : 1
           });
-          // Collect labels
           const labels = historicalData.map(d => d.date);
           allLabels = [...new Set([...allLabels, ...labels])].sort((a, b) => {
             const range = timeRangeSelect.value;
@@ -761,12 +744,17 @@
             }
           },
           plugins: {
-            legend: { display: true },
+            legend: { 
+              display: true,
+              labels: {
+                filter: (item) => item.text.includes(tokenInfo[selectedToken].displayName) ? { font: { weight: 'bold' } } : true
+              }
+            },
             tooltip: {
               mode: 'index',
               intersect: false,
               callbacks: {
-                label: context => `$${context.parsed.y.toFixed(6)}`
+                label: context => `${context.dataset.label}: $${context.parsed.y.toFixed(6)}`
               }
             }
           }
@@ -988,8 +976,8 @@
     }
 
     init();
-    setInterval(fetchCurrentPrice, 10000); // Update price every 10 seconds
-    setInterval(renderChart, 300000); // Update chart every 5 minutes
+    setInterval(fetchCurrentPrice, 10000);
+    setInterval(renderChart, 300000);
   </script>
 </body>
 </html>
